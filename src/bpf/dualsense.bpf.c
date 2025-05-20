@@ -73,21 +73,6 @@ int setup(struct edit_config *in_cfg)
     return 0;
 }
 
-SEC("syscall")
-int probe(struct hid_bpf_probe_args *ctx)
-{
-    if (ctx->rdesc_size > 4 &&
-        ctx->rdesc[0] == 0x05 && // Usage Page
-        ctx->rdesc[1] == 0x01 && // Generic Desktop
-        ctx->rdesc[2] == 0x09 && // Usage
-        ctx->rdesc[3] == 0x05)   // Game Pad
-        ctx->retval = 0;
-    else
-        ctx->retval = -EINVAL;
-
-    return 0;
-}
-
 char _license[] SEC("license") = "GPL";
 
 static const uint32_t crc_table[256] = {

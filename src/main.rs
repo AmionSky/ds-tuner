@@ -36,8 +36,9 @@ fn main() -> Result<()> {
                     match load_bpf(&syspath) {
                         Ok(link) => {
                             bpfs.insert(syspath, link);
+                            println!("eBPF successfully loaded for device!");
                         }
-                        Err(error) => println!("Failed to load BPF: {error}"),
+                        Err(error) => println!("Failed to load eBPF: {error}"),
                     };
                 }
             }
@@ -45,6 +46,7 @@ fn main() -> Result<()> {
                 if bpfs.contains_key(&syspath) {
                     println!("DualSense Controller disconnected @ {}", syspath.display());
                     bpfs.remove(&syspath);
+                    println!("eBPF successfully removed!");
                 }
             }
         }
@@ -69,29 +71,6 @@ fn load_bpf(syspath: &Path) -> Result<Link> {
     }
 
     let mut skel = open_skel.load()?;
-
-    // Probe
-    {
-        let rdesc = std::fs::read(syspath.join("report_descriptor"))?;
-        let mut rdesc_data = [0; 4096];
-        rdesc_data[..rdesc.len()].copy_from_slice(&rdesc);
-
-        let mut args = hid_bpf_probe_args {
-            hid: inum,
-            rdesc_size: rdesc.len() as u32,
-            rdesc: rdesc_data,
-            retval: -1,
-        };
-
-        let mut input = ProgramInput::default();
-        unsafe { input.context_in = Some(args.as_slice_mut()) };
-        let output = skel.progs.probe.test_run(input)?;
-
-        println!(
-            "BPF probe output: {}, retval: {}",
-            output.return_value, args.retval
-        );
-    }
 
     // Setup
     {
