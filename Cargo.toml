@@ -1,0 +1,17 @@
+[package]
+name = "dsmod"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"
+ctrlc = "3.4"
+udev = "0.9.3"
+
+[dependencies.libbpf-rs]
+git = "https://github.com/libbpf/libbpf-rs.git"
+rev = "ee1e39fc90f9011e522a689555ae47144ee0f8e9"
+
+[build-dependencies.libbpf-cargo]
+git = "https://github.com/libbpf/libbpf-rs.git"
+rev = "ee1e39fc90f9011e522a689555ae47144ee0f8e9"
