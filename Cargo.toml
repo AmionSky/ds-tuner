@@ -5,8 +5,10 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0"
-ctrlc = "3.4"
-udev = "0.9.3"
+
+[dependencies.udev]
+version = "0.9.3"
+features = ["mio"]
 
 [dependencies.libbpf-rs]
 git = "https://github.com/libbpf/libbpf-rs.git"
