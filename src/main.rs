@@ -1,36 +1,15 @@
+mod ffi;
 mod bpf {
     include!(concat!(env!("OUT_DIR"), "/dualsense.skel.rs"));
 }
 
 use anyhow::Result;
 use bpf::DualsenseSkelBuilder;
+use ffi::*;
+use libbpf_rs::skel::{OpenSkel, SkelBuilder};
 use libbpf_rs::{MapCore, ProgramInput};
-use libbpf_rs::skel::{OpenSkel, Skel, SkelBuilder};
 use std::mem::MaybeUninit;
-use std::os::raw::{c_int, c_uchar, c_uint};
 use std::path::Path;
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
-pub struct hid_bpf_probe_args {
-    pub hid: c_uint,
-    pub rdesc_size: c_uint,
-    pub rdesc: [c_uchar; 4096],
-    pub retval: c_int,
-}
-
-unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    unsafe {
-        ::core::slice::from_raw_parts((p as *const T) as *const u8, ::core::mem::size_of::<T>())
-    }
-}
-
-unsafe fn any_as_u8_slice_mut<T: Sized>(p: &mut T) -> &mut [u8] {
-    unsafe {
-        ::core::slice::from_raw_parts_mut((p as *mut T) as *mut u8, ::core::mem::size_of::<T>())
-    }
-}
 
 pub fn dev_id(device: &udev::Device) -> u32 {
     let hid_sys = String::from(device.sysname().to_str().unwrap());
@@ -73,11 +52,6 @@ fn main() -> Result<()> {
     println!("Init val: {:?}", open_skel.maps.edit_values.initial_value());
     // println!("Init val 2: {:?}", &open_skel.maps.rodata.initial_value().unwrap()[..]);
 
-    
-
-
-
-
     let mut skel = open_skel.load()?;
 
     let rdesc = std::fs::read(dev_path.join("report_descriptor"))?;
@@ -86,16 +60,16 @@ fn main() -> Result<()> {
     rdesc_data[..rdesc_len].copy_from_slice(&rdesc);
 
     let mut args = hid_bpf_probe_args {
-        hid: dev_id(&dev),           //device.id(),
-        rdesc_size: rdesc_len as u32,    //length as u32,
-        rdesc: rdesc_data, //buffer.try_into().unwrap(),
+        hid: dev_id(&dev),            //device.id(),
+        rdesc_size: rdesc_len as u32, //length as u32,
+        rdesc: rdesc_data,            //buffer.try_into().unwrap(),
         retval: -1,
     };
 
     println!("RETVAL: {}", args.retval);
 
     let mut input = ProgramInput::default();
-    unsafe { input.context_in = Some(any_as_u8_slice_mut(&mut args)) };
+    unsafe { input.context_in = Some(args.as_slice_mut()) };
 
     let output = skel.progs.probe.test_run(input)?;
     println!("probe output: {output:#?}");
@@ -103,13 +77,14 @@ fn main() -> Result<()> {
     // skel.progs.probe
     // skel.attach()?;
 
-
-    // init?
+    // setup?
+    let mut cfg = edit_config {
+        ls_lt: [127; 256],
+        rs_lt: [127; 256],
+    };
     let mut input = ProgramInput::default();
-    let mut init_data = [99u8; 256];
-    input.context_in = Some(&mut init_data);
-    let output = skel.progs.setup.test_run(input)?;
-    println!("setup output: {output:#?}");
+    unsafe { input.context_in = Some(cfg.as_slice_mut()) };
+    skel.progs.setup.test_run(input)?;
 
     // let attype = open_skel.progs.attach_prog.att
 
@@ -127,9 +102,8 @@ fn main() -> Result<()> {
         skel.maps.edit_values.map_type()
     );
 
-    let link = skel.maps.edit_values.attach_struct_ops()?;
+    let _link = skel.maps.edit_values.attach_struct_ops()?;
     // link.pin(path)
-    
 
     // std::thread::sleep(std::time::Duration::from_secs(10));
 

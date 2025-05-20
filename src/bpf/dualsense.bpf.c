@@ -1,89 +1,20 @@
 #include "vmlinux.h"
+#include "dualsense.h"
 #include "hid_bpf.h"
 #include "hid_bpf_helpers.h"
 #include <bpf/bpf_tracing.h>
 
-#define VID_SONY 0x054C
-#define PID_DUALSENSE 0x0CE6
+#define memcpy(dst, src, n) __builtin_memcpy((dst), (src), (n))
 
-#define DS_INPUT_REPORT_BT 0x31
-#define DS_INPUT_REPORT_BT_SIZE 78
+// CRC function declarations
+bool check_crc(const uint8_t *data, size_t len);
+void update_crc(uint8_t *data, size_t len);
 
-static const uint8_t PS_INPUT_CRC32_SEED = 0xA1;
-
-uint32_t crc32_le(uint32_t crc, const void *buf, size_t len);
-
-uint32_t calc_crc(uint8_t *data, size_t len)
-{
-    uint32_t crc = crc32_le(0xFFFFFFFF, &PS_INPUT_CRC32_SEED, 1);
-	crc = ~crc32_le(crc, data, len);
-    return crc;
-}
-
-uint32_t to_int_le(uint8_t *data, size_t start)
-{
-    return data[start]
-        + (data[start + 1] << 8)
-        + (data[start + 2] << 16)
-        + (data[start + 3] << 24);
-}
-
-bool check_crc(uint8_t *data, size_t len)
-{
-    uint32_t crc = calc_crc(data, len - 4);
-    uint32_t recv_crc = to_int_le(data, len - 4);
-    return crc == recv_crc;
-}
-
-struct __attribute__((__packed__)) dualsense_touch_point {
-	uint8_t contact;
-	uint8_t x_lo;
-	uint8_t x_hi:4, y_lo:4;
-	uint8_t y_hi;
-};
-
-/* Main DualSense input report excluding any BT/USB specific headers. */
-struct __attribute__((__packed__)) dualsense_input_report {
-	uint8_t x, y;
-	uint8_t rx, ry;
-	uint8_t z, rz;
-	uint8_t seq_number;
-	uint8_t buttons[4];
-	uint8_t reserved[4];
-
-	/* Motion sensors */
-	__le16 gyro[3]; /* x, y, z */
-	__le16 accel[3]; /* x, y, z */
-	__le32 sensor_timestamp;
-	uint8_t reserved2;
-
-	/* Touchpad */
-	struct dualsense_touch_point points[2];
-
-	uint8_t reserved3[12];
-	uint8_t status;
-	uint8_t reserved4[10];
-};
-
-int32_t sdiv(int32_t a, int32_t b)
-{
-    bool aneg = a < 0;
-    bool bneg = b < 0;
-    uint32_t adiv = aneg ? -a : a;
-    uint32_t bdiv = bneg ? -b : b;
-    uint32_t out = adiv / bdiv;
-    return aneg != bneg ? -out : out;
-}
-
-int16_t bpf_abs(int16_t x)
-{
-    const int16_t mask = x >> 15;
-    return (x + mask) ^ mask;
-}
-
-
-
-static uint8_t something[256];
+// Main config
+static struct edit_config {
+    uint8_t ls_lt[256]; // Left Stick - Lookup Table
+    uint8_t rs_lt[256]; // Right Stick - Lookup Table
+} cfg;
 
 HID_BPF_CONFIG(
     HID_DEVICE(BUS_BLUETOOTH, HID_GROUP_GENERIC, VID_SONY, PID_DUALSENSE)
@@ -92,60 +23,41 @@ HID_BPF_CONFIG(
 SEC(HID_BPF_DEVICE_EVENT)
 int BPF_PROG(edit_values_event, struct hid_bpf_ctx *hid_ctx)
 {
-    __u8 *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
+    uint8_t *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
 
     if (!data || data[0] != DS_INPUT_REPORT_BT)
         return 0; // EPERM or the wrong report ID
 
     if (!check_crc(data, DS_INPUT_REPORT_BT_SIZE))
-        return 0; // Incorrect CRC
+        return 0; // Skip on incorrect CRC
 
-    struct dualsense_input_report* input = (struct dualsense_input_report*)&data[2];
+    // Interpret data as input report struct
+    struct dualsense_input_report *input = (struct dualsense_input_report*)&data[2];
 
-    // input->rx = (int8_t)input->rx;
-    // input->ry = (int8_t)input->rx;
-    bpf_printk("RAW: X: %d, Y: %d",
-        input->rx, 
+    // Debug print original values
+    bpf_printk("Original: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
+        input->x,
+        input->y,
+        input->rx,
         input->ry
     );
 
-    #define DEADZONE 24
+    // Apply modifications
+    input->x = cfg.ls_lt[input->x];
+    input->y = cfg.ls_lt[input->y];
+    input->rx = cfg.rs_lt[input->rx];
+    input->ry = cfg.rs_lt[input->ry];
 
-    if (bpf_abs(127 - input->rx) < DEADZONE && bpf_abs(127 - input->ry) < DEADZONE) {
-        input->rx = 127;
-        input->ry = 127;
-    } else {
-
-    }
-
-    // int8_t step1 = 127 - input->rx;
-    // bpf_printk("Step 1: %d", step1);
-    // int8_t step2 = my_abs(step1);
-    // bpf_printk("Step 2: %d", step2);
-    // int8_t step3 = 128 + step2;
-    // bpf_printk("Step 3: %d", step3);
-    // int8_t step4 = 255 - step3;
-    // bpf_printk("Step 4: %d", step4);
-
-    // input->rx = 255 - (128 + ((127 - input->rx) & 0xF0));
-    // input->ry = 255 - (128 + ((127 - input->ry) & 0xF0));
-
-    bpf_printk("MOD: X: %d, Y: %d",
-        input->rx, 
+    // Debug print modified values
+    bpf_printk("Modified: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
+        input->x,
+        input->y,
+        input->rx,
         input->ry
     );
-
-    bpf_printk("setupdata: %d", something[6]);
-    
 
     // Update CRC
-    uint32_t crc = calc_crc(data, DS_INPUT_REPORT_BT_SIZE - 4);
-    data[DS_INPUT_REPORT_BT_SIZE - 4] = crc & 0xFF;
-    data[DS_INPUT_REPORT_BT_SIZE - 3] = (crc >> 8) & 0xFF;
-    data[DS_INPUT_REPORT_BT_SIZE - 2] = (crc >> 16) & 0xFF;
-    data[DS_INPUT_REPORT_BT_SIZE - 1] = (crc >> 24) & 0xFF;
-
-    // bpf_printk("%s: hello?", __func__);
+    update_crc(data, DS_INPUT_REPORT_BT_SIZE);
 
     return 0;
 }
@@ -154,13 +66,10 @@ HID_BPF_OPS(edit_values) = {
     .hid_device_event = (void *)edit_values_event,
 };
 
-#define memcpy(dest, src, n) __builtin_memcpy((dest), (src), (n))
-
 SEC("syscall")
-int setup(uint8_t cfg[])
+int setup(struct edit_config *in_cfg)
 {
-    memcpy(something, cfg, sizeof(something));
-
+    memcpy(&cfg, in_cfg, sizeof(cfg));
     return 0;
 }
 
@@ -216,9 +125,45 @@ static const uint32_t crc_table[256] = {
     0xB3667A2EU, 0xC4614AB8U, 0x5D681B02U, 0x2A6F2B94U, 0xB40BBE37U, 0xC30C8EA1U, 0x5A05DF1BU, 0x2D02EF8DU
 };
 
-uint32_t crc32_le(uint32_t crc, const void *buf, size_t len)
+uint32_t crc32_le(uint32_t crc, const uint8_t *data, size_t len)
 {
-    const uint8_t *data = (const uint8_t *)buf;
     while (len--) crc = crc_table[(crc ^ *data++) & 0xFFU] ^ (crc >> 8);
     return crc;
+}
+
+uint32_t calc_crc(const uint8_t *data, size_t len)
+{
+    static const uint8_t seed = PS_INPUT_CRC32_SEED;
+    uint32_t crc = crc32_le(0xFFFFFFFF, &seed, 1);
+    crc = ~crc32_le(crc, data, len);
+    return crc;
+}
+
+uint32_t to_int_le(const uint8_t *data, size_t start)
+{
+    return data[start]
+        + (data[start + 1] << 8)
+        + (data[start + 2] << 16)
+        + (data[start + 3] << 24);
+}
+
+bool check_crc(const uint8_t *data, size_t len)
+{
+    uint32_t crc = calc_crc(data, len - 4);
+    uint32_t recv_crc = to_int_le(data, len - 4);
+    return crc == recv_crc;
+}
+
+void insert_int_le(uint8_t *data, size_t start, uint32_t value)
+{
+    data[start] = value & 0xFF;
+    data[start + 1] = (value >> 8) & 0xFF;
+    data[start + 2] = (value >> 16) & 0xFF;
+    data[start + 3] = (value >> 24) & 0xFF;
+}
+
+void update_crc(uint8_t *data, size_t len)
+{
+    uint32_t crc = calc_crc(data, len - 4);
+    insert_int_le(data, len - 4, crc);
 }
