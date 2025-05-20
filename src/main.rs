@@ -40,7 +40,7 @@ pub fn dev_id(device: &udev::Device) -> u32 {
 fn main() -> Result<()> {
     println!("Hello, world!");
 
-    let dev_path = Path::new("/sys/bus/hid/devices/0005:054C:0CE6.000E");
+    let dev_path = Path::new("/sys/bus/hid/devices/0005:054C:0CE6.000F");
     let dev = udev::Device::from_syspath(dev_path)?;
 
     println!("udev name: {}", dev.sysname().display());
@@ -71,6 +71,12 @@ fn main() -> Result<()> {
     // open_skel.maps.edit_values.set_initial_value(&dev_id(&dev).to_le_bytes())?;
 
     println!("Init val: {:?}", open_skel.maps.edit_values.initial_value());
+    // println!("Init val 2: {:?}", &open_skel.maps.rodata.initial_value().unwrap()[..]);
+
+    
+
+
+
 
     let mut skel = open_skel.load()?;
 
@@ -96,6 +102,14 @@ fn main() -> Result<()> {
     println!("RETVAL: {}", args.retval);
     // skel.progs.probe
     // skel.attach()?;
+
+
+    // init?
+    let mut input = ProgramInput::default();
+    let mut init_data = [99u8; 256];
+    input.context_in = Some(&mut init_data);
+    let output = skel.progs.setup.test_run(input)?;
+    println!("setup output: {output:#?}");
 
     // let attype = open_skel.progs.attach_prog.att
 
