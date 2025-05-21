@@ -10,7 +10,7 @@ use anyhow::Result;
 use bpf::DualsenseSkelBuilder;
 use ffi::*;
 use libbpf_rs::skel::{OpenSkel, SkelBuilder};
-use libbpf_rs::{Link, ProgramInput};
+use libbpf_rs::{Link, MapCore, MapFlags, ProgramInput};
 use std::collections::HashMap;
 use std::mem::MaybeUninit;
 use std::path::{Path, PathBuf};
@@ -75,11 +75,17 @@ fn load_bpf(syspath: &Path) -> Result<Link> {
 
     // Setup
     {
-        let lt = input::gen_input();
-        let mut cfg = edit_config {
-            ls_lt: lt.clone(),
-            rs_lt: lt,
-        };
+        let lut = input::gen_input();
+
+        // Insert data
+        for (k, v) in lut.into_iter().enumerate() {
+            let key = (k as u32).to_ne_bytes();
+            let val = v.to_ne_bytes();
+            skel.maps.left_stick.update(&key, &val, MapFlags::ANY)?;
+            skel.maps.right_stick.update(&key, &val, MapFlags::ANY)?;
+        }
+
+        let mut cfg = edit_config { dummy: 0 };
         let mut input = ProgramInput::default();
         unsafe { input.context_in = Some(cfg.as_slice_mut()) };
         skel.progs.setup.test_run(input)?;

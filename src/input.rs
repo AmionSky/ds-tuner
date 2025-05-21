@@ -20,24 +20,6 @@ pub fn gen_input() -> [u16; 256 * 256] {
         }
     }
 
-    /*
-    for y in 0..256 {
-        for x in 0..256 {
-            let index = x + y * 256;
-            let value = values[index];
-
-            print!(
-                "X{} Y{} = X{} Y{} |",
-                index & 0xFF,
-                (index >> 8) & 0xFF,
-                value & 0xFF,
-                (value >> 8) & 0xFF,
-            );
-        }
-        println!()
-    }
-    */
-
     values
 }
 
@@ -80,7 +62,7 @@ fn to_merged(x: f64, y: f64) -> u16 {
 
 /// Scale length outside of deadzone to full 0.0 to 1.0 range
 const fn deadzone_scale(len: f64, deadzone: f64) -> f64 {
-    (len - deadzone).max(0.0) * (1.0 / (1.0 - deadzone))
+    ((len - deadzone).max(0.0) * (1.0 / (1.0 - deadzone))).min(len)
 }
 
 #[cfg(test)]

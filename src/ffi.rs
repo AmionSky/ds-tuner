@@ -5,8 +5,7 @@ use std::slice::{from_raw_parts, from_raw_parts_mut};
 #[derive(Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
 pub struct edit_config {
-    pub ls_lt: [u16; 256 * 256],
-    pub rs_lt: [u16; 256 * 256],
+    pub dummy: u8,
 }
 
 #[allow(dead_code)]

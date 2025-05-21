@@ -7,21 +7,32 @@
 #define memcpy(dst, src, n) __builtin_memcpy((dst), (src), (n))
 
 // CRC function declarations
-bool check_crc(const uint8_t *data, size_t len);
-void update_crc(uint8_t *data, size_t len);
+bool check_crc(const u8 *data, size_t len);
+void update_crc(u8 *data, size_t len);
 
 // Main config
-static struct edit_config {
-    uint16_t ls_lt[256 * 256]; // Left Stick - Lookup Table
-    uint16_t rs_lt[256 * 256]; // Right Stick - Lookup Table
+static struct config {
+    u8 dummy;
 } cfg;
 
-void apply_stick(uint8_t *input_x, uint8_t *input_y, uint16_t *lt)
+struct stick_lut {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 256 * 256);
+    __type(value, u16);
+    __type(key, u32);
+} left_stick SEC(".maps"), right_stick SEC(".maps");
+
+void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
 {
-    size_t index = (size_t)*input_x + (size_t)*input_x * 256;
-    uint16_t value = lt[index];
-    *input_x = value & 0xFF;
-    *input_y = (value >> 8) & 0xFF;
+    u32 index = *x + *y * 256;
+    u16 *value = bpf_map_lookup_elem(&right_stick, &index);
+    if (value) {
+        u16 v = *value;
+        *x = v & 0x00FF;
+        *y = (v >> 8) & 0x00FF;
+    } else {
+        bpf_printk("Stick LUT value is NULL!");
+    }
 }
 
 HID_BPF_CONFIG(
@@ -43,24 +54,28 @@ int BPF_PROG(edit_values_event, struct hid_bpf_ctx *hid_ctx)
     struct dualsense_input_report *input = (struct dualsense_input_report*)&data[2];
 
     // Debug print original values
+    /*
     bpf_printk("Original: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
         input->x,
         input->y,
         input->rx,
         input->ry
     );
+    */
 
     // Apply modifications
-    apply_stick(&input->x, &input->y, cfg.ls_lt);
-    apply_stick(&input->rx, &input->ry, cfg.rs_lt);
+    apply_stick(&input->x, &input->y, &left_stick);
+    apply_stick(&input->rx, &input->ry, &right_stick);
 
     // Debug print modified values
+    /*
     bpf_printk("Modified: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
         input->x,
         input->y,
         input->rx,
         input->ry
     );
+    */
 
     // Update CRC
     update_crc(data, DS_INPUT_REPORT_BT_SIZE);
@@ -73,9 +88,8 @@ HID_BPF_OPS(edit_values) = {
 };
 
 SEC("syscall")
-int setup(struct edit_config *in_cfg)
+int setup(config *in_cfg)
 {
-    //memcpy(&cfg, in_cfg, sizeof(cfg));
     return 0;
 }
 
