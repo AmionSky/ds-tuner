@@ -4,6 +4,7 @@ mod ffi;
 mod bpf {
     include!(concat!(env!("OUT_DIR"), "/dualsense.skel.rs"));
 }
+mod input;
 
 use anyhow::Result;
 use bpf::DualsenseSkelBuilder;
@@ -74,9 +75,10 @@ fn load_bpf(syspath: &Path) -> Result<Link> {
 
     // Setup
     {
+        let lt = input::gen_input();
         let mut cfg = edit_config {
-            ls_lt: [127; 256],
-            rs_lt: [127; 256],
+            ls_lt: lt.clone(),
+            rs_lt: lt,
         };
         let mut input = ProgramInput::default();
         unsafe { input.context_in = Some(cfg.as_slice_mut()) };

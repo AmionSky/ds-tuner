@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0"
+glam = "0.30.0"
 
 [dependencies.udev]
 version = "0.9.3"

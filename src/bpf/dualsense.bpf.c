@@ -12,9 +12,17 @@ void update_crc(uint8_t *data, size_t len);
 
 // Main config
 static struct edit_config {
-    uint8_t ls_lt[256]; // Left Stick - Lookup Table
-    uint8_t rs_lt[256]; // Right Stick - Lookup Table
+    uint16_t ls_lt[256 * 256]; // Left Stick - Lookup Table
+    uint16_t rs_lt[256 * 256]; // Right Stick - Lookup Table
 } cfg;
+
+void apply_stick(uint8_t *input_x, uint8_t *input_y, uint16_t *lt)
+{
+    size_t index = (size_t)*input_x + (size_t)*input_x * 256;
+    uint16_t value = lt[index];
+    *input_x = value & 0xFF;
+    *input_y = (value >> 8) & 0xFF;
+}
 
 HID_BPF_CONFIG(
     HID_DEVICE(BUS_BLUETOOTH, HID_GROUP_GENERIC, VID_SONY, PID_DUALSENSE)
@@ -43,10 +51,8 @@ int BPF_PROG(edit_values_event, struct hid_bpf_ctx *hid_ctx)
     );
 
     // Apply modifications
-    input->x = cfg.ls_lt[input->x];
-    input->y = cfg.ls_lt[input->y];
-    input->rx = cfg.rs_lt[input->rx];
-    input->ry = cfg.rs_lt[input->ry];
+    apply_stick(&input->x, &input->y, cfg.ls_lt);
+    apply_stick(&input->rx, &input->ry, cfg.rs_lt);
 
     // Debug print modified values
     bpf_printk("Modified: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
@@ -69,7 +75,7 @@ HID_BPF_OPS(edit_values) = {
 SEC("syscall")
 int setup(struct edit_config *in_cfg)
 {
-    memcpy(&cfg, in_cfg, sizeof(cfg));
+    //memcpy(&cfg, in_cfg, sizeof(cfg));
     return 0;
 }
 

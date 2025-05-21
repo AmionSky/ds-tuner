@@ -1,23 +1,12 @@
 use std::mem::size_of;
-use std::os::raw::{c_int, c_uchar, c_uint};
 use std::slice::{from_raw_parts, from_raw_parts_mut};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 #[allow(non_camel_case_types)]
-pub struct hid_bpf_probe_args {
-    pub hid: c_uint,
-    pub rdesc_size: c_uint,
-    pub rdesc: [c_uchar; 4096],
-    pub retval: c_int,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
 pub struct edit_config {
-    pub ls_lt: [u8; 256],
-    pub rs_lt: [u8; 256],
+    pub ls_lt: [u16; 256 * 256],
+    pub rs_lt: [u16; 256 * 256],
 }
 
 #[allow(dead_code)]
