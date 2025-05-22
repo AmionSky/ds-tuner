@@ -50,7 +50,7 @@ fn poll(mut socket: udev::MonitorSocket, tx: Sender<Event>) -> std::io::Result<(
         Interest::READABLE | Interest::WRITABLE,
     )?;
 
-    let mut events = Events::with_capacity(128);
+    let mut events = Events::with_capacity(8);
     loop {
         poll.poll(&mut events, None)?;
 

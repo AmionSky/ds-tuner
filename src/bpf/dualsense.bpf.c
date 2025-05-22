@@ -4,16 +4,11 @@
 #include "hid_bpf_helpers.h"
 #include <bpf/bpf_tracing.h>
 
-#define memcpy(dst, src, n) __builtin_memcpy((dst), (src), (n))
+#define dbgp_stick(t, i) bpf_printk("%s: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d", t, i->x, i->y, i->rx, i->ry)
 
 // CRC function declarations
 bool check_crc(const u8 *data, size_t len);
 void update_crc(u8 *data, size_t len);
-
-// Main config
-static struct config {
-    u8 dummy;
-} cfg;
 
 struct stick_lut {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -25,7 +20,7 @@ struct stick_lut {
 void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
 {
     u32 index = *x + *y * 256;
-    u16 *value = bpf_map_lookup_elem(&right_stick, &index);
+    u16 *value = bpf_map_lookup_elem(lut, &index);
     if (value) {
         u16 v = *value;
         *x = v & 0x00FF;
@@ -35,12 +30,8 @@ void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
     }
 }
 
-HID_BPF_CONFIG(
-    HID_DEVICE(BUS_BLUETOOTH, HID_GROUP_GENERIC, VID_SONY, PID_DUALSENSE)
-);
-
 SEC(HID_BPF_DEVICE_EVENT)
-int BPF_PROG(edit_values_event, struct hid_bpf_ctx *hid_ctx)
+int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
 {
     uint8_t *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
 
@@ -54,28 +45,14 @@ int BPF_PROG(edit_values_event, struct hid_bpf_ctx *hid_ctx)
     struct dualsense_input_report *input = (struct dualsense_input_report*)&data[2];
 
     // Debug print original values
-    /*
-    bpf_printk("Original: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
-        input->x,
-        input->y,
-        input->rx,
-        input->ry
-    );
-    */
+    // dbgp_stick("Original", input);
 
     // Apply modifications
     apply_stick(&input->x, &input->y, &left_stick);
     apply_stick(&input->rx, &input->ry, &right_stick);
 
     // Debug print modified values
-    /*
-    bpf_printk("Modified: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d",
-        input->x,
-        input->y,
-        input->rx,
-        input->ry
-    );
-    */
+    // dbgp_stick("Modified", input);
 
     // Update CRC
     update_crc(data, DS_INPUT_REPORT_BT_SIZE);
@@ -83,15 +60,9 @@ int BPF_PROG(edit_values_event, struct hid_bpf_ctx *hid_ctx)
     return 0;
 }
 
-HID_BPF_OPS(edit_values) = {
-    .hid_device_event = (void *)edit_values_event,
+HID_BPF_OPS(dsmod) = {
+    .hid_device_event = (void *)mod_device_event,
 };
-
-SEC("syscall")
-int setup(config *in_cfg)
-{
-    return 0;
-}
 
 char _license[] SEC("license") = "GPL";
 

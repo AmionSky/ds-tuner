@@ -3,9 +3,6 @@
 
 #include "vmlinux.h"
 
-#define VID_SONY 0x054C
-#define PID_DUALSENSE 0x0CE6
-
 #define DS_INPUT_REPORT_BT 0x31
 #define DS_INPUT_REPORT_BT_SIZE 78
 
