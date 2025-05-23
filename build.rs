@@ -2,17 +2,22 @@ use libbpf_cargo::SkeletonBuilder;
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
 
-const SRC: &str = "src/bpf/dualsense.bpf.c";
+const BFP_DIR: &str = "src/bpf";
 
 fn main() {
+    let bfp_dir = Path::new(BFP_DIR);
+    let src = bfp_dir.join("dualsense.bpf.c");
+    let header = bfp_dir.join("dualsense.h");
+
     link("vmlinux.h").expect("Failed to link 'vmlinux.h'");
 
     SkeletonBuilder::new()
-        .source(SRC)
+        .source(&src)
         .build_and_generate(out_file("dualsense.skel.rs"))
         .unwrap();
 
-    println!("cargo:rerun-if-changed={}", SRC);
+    println!("cargo:rerun-if-changed={}", src.display());
+    println!("cargo:rerun-if-changed={}", header.display());
 }
 
 fn out_file(name: &str) -> PathBuf {

@@ -1,14 +1,14 @@
 use crate::dualsense::{DRIVER, SUBSYSTEM, check_sysname};
 use anyhow::Result;
-use std::path::PathBuf;
+use std::ffi::OsStr;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::spawn;
 use udev::mio::{Events, Interest, Poll, Token};
 
 #[derive(Debug)]
 pub enum Event {
-    Added(PathBuf),
-    Removed(PathBuf),
+    Added(String),
+    Removed(String),
 }
 
 pub fn monitor_and_query() -> Result<Receiver<Event>> {
@@ -27,7 +27,7 @@ fn query(tx: Sender<Event>) -> Result<()> {
     let list = query.scan_devices()?;
     for device in list {
         if check_sysname(device.sysname()) {
-            tx.send(Event::Added(device.syspath().to_path_buf()))?;
+            tx.send(Event::Added(to_str(device.sysname())))?;
         }
     }
 
@@ -61,11 +61,11 @@ fn poll(mut socket: udev::MonitorSocket, tx: Sender<Event>) -> std::io::Result<(
                     .filter(|e| check_sysname(e.sysname()))
                     .for_each(|e| match e.event_type() {
                         udev::EventType::Bind => {
-                            tx.send(Event::Added(e.syspath().to_path_buf()))
+                            tx.send(Event::Added(to_str(e.sysname())))
                                 .expect("Failed to send event!");
                         }
                         udev::EventType::Unbind => {
-                            tx.send(Event::Removed(e.syspath().to_path_buf()))
+                            tx.send(Event::Removed(to_str(e.sysname())))
                                 .expect("Failed to send event!");
                         }
                         _ => (), // Ignore
@@ -73,4 +73,8 @@ fn poll(mut socket: udev::MonitorSocket, tx: Sender<Event>) -> std::io::Result<(
             }
         }
     }
+}
+
+fn to_str(osstr: &OsStr) -> String {
+    osstr.to_str().expect("Invalid UTF-8").to_string()
 }

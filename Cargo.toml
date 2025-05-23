@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0"
+anyhow = "1.0.0"
 glam = "0.30.0"
+log = "0.4.27"
+simplelog = "0.12.2"
+systemd-journal-logger = "2.2.2"
 
 [dependencies.udev]
 version = "0.9.3"

@@ -1,7 +1,7 @@
 mod util;
 
+use self::util::*;
 use glam::DVec2;
-use util::*;
 
 pub fn gen_stick_lut(deadzone: f64) -> Vec<u16> {
     let mut values = vec![0; 256 * 256];
