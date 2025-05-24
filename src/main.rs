@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     let config = conf::load().map_err(|e| anyhow!("Failed to load configuration file! ({e})"))?;
 
     if !config.enabled {
-        log::info!("DSMOD is disabled!");
+        log::info!("DSMOD is disabled in config!");
         return Ok(());
     }
 
@@ -25,30 +25,29 @@ fn main() -> Result<()> {
     let mut bpfs: HashMap<String, Link> = HashMap::new();
 
     loop {
-        let event = event_rx.recv().unwrap();
-        match event {
+        match event_rx.recv()? {
             Event::Added(sysname) => {
                 #[allow(clippy::map_entry)] // wtf clippy
                 if !bpfs.contains_key(&sysname) {
-                    log::info!("DualSense controller connected: '{sysname}'");
+                    log::info!("DualSense controller connected: {sysname}");
                     match bpf::load(&sysname, &config) {
                         Ok(link) => {
-                            log::info!("Loaded eBPF program for '{sysname}'");
+                            log::info!("Loaded eBPF program for {sysname}");
                             bpfs.insert(sysname, link);
                         }
                         Err(error) => {
-                            log::error!("Failed to load eBPF program for '{sysname}' ({error})");
+                            log::error!("Failed to load eBPF program for {sysname} ({error})");
                         }
                     };
                 } else {
-                    log::warn!("Duplicate device found: '{sysname}'");
+                    log::warn!("Duplicate device found: {sysname}");
                 }
             }
             Event::Removed(sysname) => {
                 if bpfs.contains_key(&sysname) {
-                    log::info!("DualSense controller disconnected: '{sysname}'");
+                    log::info!("DualSense controller disconnected: {sysname}");
                     if bpfs.remove(&sysname).is_some() {
-                        log::info!("Removed eBPF program for '{sysname}'");
+                        log::info!("Removed eBPF program for {sysname}");
                     }
                 }
             }

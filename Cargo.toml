@@ -5,28 +5,22 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.0"
-glam = "0.30.0"
+# Config
+serde = { version = "1.0.0", features = ["derive"] }
+toml = { version = "0.8.22", default-features = false, features = ["parse"] }
+# Logging
 log = "0.4.27"
 simplelog = "0.12.2"
 systemd-journal-logger = "2.2.2"
-
-[dependencies.serde]
-version = "1.0.0"
-features = ["derive"]
-
-[dependencies.toml]
-version = "0.8.22"
-default-features = false
-features = ["parse"]
-
-[dependencies.udev]
-version = "0.9.3"
-features = ["mio"]
+# Device Monitor
+udev = { version = "0.9.3", features = ["mio"] }
+# Input
+glam = "0.30.0"
 
 [dependencies.libbpf-rs]
 git = "https://github.com/libbpf/libbpf-rs.git"
-rev = "ee1e39fc90f9011e522a689555ae47144ee0f8e9"
+rev = "3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
 
 [build-dependencies.libbpf-cargo]
 git = "https://github.com/libbpf/libbpf-rs.git"
-rev = "ee1e39fc90f9011e522a689555ae47144ee0f8e9"
+rev = "3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
