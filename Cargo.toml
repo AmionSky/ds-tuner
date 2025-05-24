@@ -10,6 +10,15 @@ log = "0.4.27"
 simplelog = "0.12.2"
 systemd-journal-logger = "2.2.2"
 
+[dependencies.serde]
+version = "1.0.0"
+features = ["derive"]
+
+[dependencies.toml]
+version = "0.8.22"
+default-features = false
+features = ["parse"]
+
 [dependencies.udev]
 version = "0.9.3"
 features = ["mio"]

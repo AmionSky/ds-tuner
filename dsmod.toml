@@ -1,0 +1,7 @@
+enabled = true
+
+[sticks.left]
+deadzone = 0.08
+
+[sticks.right]
+deadzone = 0.12

@@ -39,7 +39,7 @@ fn link<P: AsRef<Path>>(file: P) -> Result<(), IoError> {
         .join("build")
         .join(file.as_ref());
 
-    let target = Path::new("src/bpf").join(name);
+    let target = Path::new(BFP_DIR).join(name);
     if target.exists() {
         std::fs::remove_file(&target)?;
     }

@@ -4,8 +4,6 @@
 #include "hid_bpf_helpers.h"
 #include <bpf/bpf_tracing.h>
 
-#define dbgp_stick(t, i) bpf_printk("%s: LS> X: %03d, Y: %03d | RS> X: %03d, Y: %03d", t, i->x, i->y, i->rx, i->ry)
-
 // CRC function declarations
 bool check_crc(const u8 *data, size_t len);
 void update_crc(u8 *data, size_t len);
@@ -33,7 +31,7 @@ void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
 SEC(HID_BPF_DEVICE_EVENT)
 int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
 {
-    uint8_t *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
+    u8 *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
 
     if (!data || data[0] != DS_INPUT_REPORT_BT)
         return 0; // EPERM or the wrong report ID
@@ -44,15 +42,9 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
     // Interpret data as input report struct
     struct dualsense_input_report *input = (struct dualsense_input_report*)&data[2];
 
-    // Debug print original values
-    // dbgp_stick("Original", input);
-
     // Apply modifications
     apply_stick(&input->x, &input->y, &left_stick);
     apply_stick(&input->rx, &input->ry, &right_stick);
-
-    // Debug print modified values
-    // dbgp_stick("Modified", input);
 
     // Update CRC
     update_crc(data, DS_INPUT_REPORT_BT_SIZE);
@@ -66,7 +58,7 @@ HID_BPF_OPS(dsmod) = {
 
 char _license[] SEC("license") = "GPL";
 
-static const uint32_t crc_table[256] = {
+static const u32 crc_table[256] = {
     0x00000000U, 0x77073096U, 0xEE0E612CU, 0x990951BAU, 0x076DC419U, 0x706AF48FU, 0xE963A535U, 0x9E6495A3U,
     0x0EDB8832U, 0x79DCB8A4U, 0xE0D5E91EU, 0x97D2D988U, 0x09B64C2BU, 0x7EB17CBDU, 0xE7B82D07U, 0x90BF1D91U,
     0x1DB71064U, 0x6AB020F2U, 0xF3B97148U, 0x84BE41DEU, 0x1ADAD47DU, 0x6DDDE4EBU, 0xF4D4B551U, 0x83D385C7U,
@@ -101,21 +93,21 @@ static const uint32_t crc_table[256] = {
     0xB3667A2EU, 0xC4614AB8U, 0x5D681B02U, 0x2A6F2B94U, 0xB40BBE37U, 0xC30C8EA1U, 0x5A05DF1BU, 0x2D02EF8DU
 };
 
-uint32_t crc32_le(uint32_t crc, const uint8_t *data, size_t len)
+u32 crc32_le(u32 crc, const u8 *data, size_t len)
 {
     while (len--) crc = crc_table[(crc ^ *data++) & 0xFFU] ^ (crc >> 8);
     return crc;
 }
 
-uint32_t calc_crc(const uint8_t *data, size_t len)
+u32 calc_crc(const u8 *data, size_t len)
 {
-    static const uint8_t seed = PS_INPUT_CRC32_SEED;
-    uint32_t crc = crc32_le(0xFFFFFFFF, &seed, 1);
+    static const u8 seed = PS_INPUT_CRC32_SEED;
+    u32 crc = crc32_le(0xFFFFFFFF, &seed, 1);
     crc = ~crc32_le(crc, data, len);
     return crc;
 }
 
-uint32_t to_int_le(const uint8_t *data, size_t start)
+u32 to_int_le(const u8 *data, size_t start)
 {
     return data[start]
         + (data[start + 1] << 8)
@@ -123,14 +115,14 @@ uint32_t to_int_le(const uint8_t *data, size_t start)
         + (data[start + 3] << 24);
 }
 
-bool check_crc(const uint8_t *data, size_t len)
+bool check_crc(const u8 *data, size_t len)
 {
-    uint32_t crc = calc_crc(data, len - 4);
-    uint32_t recv_crc = to_int_le(data, len - 4);
+    u32 crc = calc_crc(data, len - 4);
+    u32 recv_crc = to_int_le(data, len - 4);
     return crc == recv_crc;
 }
 
-void insert_int_le(uint8_t *data, size_t start, uint32_t value)
+void insert_int_le(u8 *data, size_t start, u32 value)
 {
     data[start] = value & 0xFF;
     data[start + 1] = (value >> 8) & 0xFF;
@@ -138,8 +130,8 @@ void insert_int_le(uint8_t *data, size_t start, uint32_t value)
     data[start + 3] = (value >> 24) & 0xFF;
 }
 
-void update_crc(uint8_t *data, size_t len)
+void update_crc(u8 *data, size_t len)
 {
-    uint32_t crc = calc_crc(data, len - 4);
+    u32 crc = calc_crc(data, len - 4);
     insert_int_le(data, len - 4, crc);
 }
