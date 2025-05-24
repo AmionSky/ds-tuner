@@ -1,12 +1,6 @@
 #include "vmlinux.h"
 #include "dualsense.h"
-#include "hid_bpf.h"
-#include "hid_bpf_helpers.h"
 #include <bpf/bpf_tracing.h>
-
-// CRC function declarations
-bool check_crc(const u8 *data, size_t len);
-void update_crc(u8 *data, size_t len);
 
 struct stick_lut {
     __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -28,7 +22,7 @@ void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
     }
 }
 
-SEC(HID_BPF_DEVICE_EVENT)
+SEC("struct_ops/hid_device_event")
 int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
 {
     u8 *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
@@ -52,7 +46,8 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
     return 0;
 }
 
-HID_BPF_OPS(dsmod) = {
+SEC(".struct_ops.link")
+struct hid_bpf_ops dsmod = {
     .hid_device_event = (void *)mod_device_event,
 };
 
@@ -90,7 +85,7 @@ static const u32 crc_table[256] = {
     0xA00AE278U, 0xD70DD2EEU, 0x4E048354U, 0x3903B3C2U, 0xA7672661U, 0xD06016F7U, 0x4969474DU, 0x3E6E77DBU,
     0xAED16A4AU, 0xD9D65ADCU, 0x40DF0B66U, 0x37D83BF0U, 0xA9BCAE53U, 0xDEBB9EC5U, 0x47B2CF7FU, 0x30B5FFE9U,
     0xBDBDF21CU, 0xCABAC28AU, 0x53B39330U, 0x24B4A3A6U, 0xBAD03605U, 0xCDD70693U, 0x54DE5729U, 0x23D967BFU,
-    0xB3667A2EU, 0xC4614AB8U, 0x5D681B02U, 0x2A6F2B94U, 0xB40BBE37U, 0xC30C8EA1U, 0x5A05DF1BU, 0x2D02EF8DU
+    0xB3667A2EU, 0xC4614AB8U, 0x5D681B02U, 0x2A6F2B94U, 0xB40BBE37U, 0xC30C8EA1U, 0x5A05DF1BU, 0x2D02EF8DU,
 };
 
 u32 crc32_le(u32 crc, const u8 *data, size_t len)

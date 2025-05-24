@@ -40,4 +40,8 @@ struct PACKED dualsense_input_report {
 	uint8_t reserved4[10];
 };
 
+// CRC function declarations
+bool check_crc(const u8 *data, size_t len);
+void update_crc(u8 *data, size_t len);
+
 #endif /* ____DUALSENSE__H */
