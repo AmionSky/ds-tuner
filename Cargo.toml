@@ -20,6 +20,7 @@ glam = "0.30.0"
 [dependencies.libbpf-rs]
 git = "https://github.com/libbpf/libbpf-rs.git"
 rev = "3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
+default-features = false
 
 [build-dependencies.libbpf-cargo]
 git = "https://github.com/libbpf/libbpf-rs.git"
@@ -30,4 +31,3 @@ codegen-units = 1
 opt-level = "s"
 strip = true
 lto = true
-panic = "abort"
