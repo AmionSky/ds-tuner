@@ -24,3 +24,10 @@ rev = "3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
 [build-dependencies.libbpf-cargo]
 git = "https://github.com/libbpf/libbpf-rs.git"
 rev = "3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+strip = true
+lto = true
+panic = "abort"
