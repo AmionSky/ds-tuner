@@ -14,7 +14,7 @@ pub enum Event {
 pub fn monitor_and_query() -> Result<Receiver<Event>> {
     let (tx, rx) = channel();
     let query_tx = tx.clone();
-    spawn(|| monitor(tx).expect("Udev monitor failed!"));
+    spawn(move || monitor(tx).expect("Udev monitor failed!"));
     query(query_tx)?;
     Ok(rx)
 }

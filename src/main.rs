@@ -58,7 +58,7 @@ fn main() -> Result<()> {
 }
 
 fn init_logger() -> Result<()> {
-    use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
+    use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
     use systemd_journal_logger::{JournalLog, connected_to_journal};
 
     if connected_to_journal() {
@@ -67,7 +67,10 @@ fn init_logger() -> Result<()> {
     } else {
         TermLogger::init(
             LevelFilter::Debug,
-            Config::default(),
+            ConfigBuilder::new()
+                .set_thread_level(LevelFilter::Trace)
+                .set_target_level(LevelFilter::Trace)
+                .build(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         )?;
