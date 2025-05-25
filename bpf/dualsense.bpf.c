@@ -18,30 +18,46 @@ void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
         *x = v & 0x00FF;
         *y = (v >> 8) & 0x00FF;
     } else {
-        bpf_printk("Stick LUT value is NULL!");
+        bpf_printk("%s: Stick LUT value is NULL!", __func__);
     }
 }
 
 SEC("struct_ops/hid_device_event")
 int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
 {
-    u8 *data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
+    // Get the report ID
+    u8 *data = hid_bpf_get_data(hid_ctx, 0, 1);
+    if (!data) return 0; // EPERM
 
-    if (!data || data[0] != DS_INPUT_REPORT_BT)
-        return 0; // EPERM or the wrong report ID
+    // Get the input data
+    bool is_bt = false;
+    struct dualsense_input_report *input;
+    switch (*data) {
+        case DS_INPUT_REPORT_USB:
+            data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_USB_SIZE);
+            input = (struct dualsense_input_report*)&data[1];
+            break;
+        case DS_INPUT_REPORT_BT:
+            data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
+            input = (struct dualsense_input_report*)&data[2];
+            is_bt = true;
+            break;
+        default: // Wrong report ID
+            return 0;
+    }
 
-    if (!check_crc(data, DS_INPUT_REPORT_BT_SIZE))
+    if (!data || !input) return 0; // EPERM or incorrect data size
+
+    // Check CRC if using Bluetooth
+    if (is_bt && !check_crc(data, DS_INPUT_REPORT_BT_SIZE))
         return 0; // Skip on incorrect CRC
-
-    // Interpret data as input report struct
-    struct dualsense_input_report *input = (struct dualsense_input_report*)&data[2];
 
     // Apply modifications
     apply_stick(&input->x, &input->y, &left_stick);
     apply_stick(&input->rx, &input->ry, &right_stick);
 
-    // Update CRC
-    update_crc(data, DS_INPUT_REPORT_BT_SIZE);
+    // Update CRC if using Bluetooth
+    if (is_bt) update_crc(data, DS_INPUT_REPORT_BT_SIZE);
 
     return 0;
 }

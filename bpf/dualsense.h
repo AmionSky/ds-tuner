@@ -3,6 +3,9 @@
 
 #include "vmlinux.h"
 
+#define DS_INPUT_REPORT_USB 0x01
+#define DS_INPUT_REPORT_USB_SIZE 64
+
 #define DS_INPUT_REPORT_BT 0x31
 #define DS_INPUT_REPORT_BT_SIZE 78
 
