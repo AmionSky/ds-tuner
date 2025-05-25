@@ -1,0 +1,10 @@
+[Unit]
+Description=DualSense input modifier
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/dsmod
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
