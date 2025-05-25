@@ -32,7 +32,7 @@ fn main() -> Result<()> {
                     log::info!("DualSense controller connected: {sysname}");
                     match bpf::load(&sysname, &config) {
                         Ok(link) => {
-                            log::info!("Loaded eBPF program for {sysname}");
+                            log::debug!("Loaded eBPF program for {sysname}");
                             bpfs.insert(sysname, link);
                         }
                         Err(error) => {
@@ -40,6 +40,8 @@ fn main() -> Result<()> {
                         }
                     };
                 } else {
+                    // Probably can only be caused by a race condition between
+                    // the start of the device monitor and the manual query
                     log::warn!("Duplicate device found: {sysname}");
                 }
             }
@@ -47,7 +49,7 @@ fn main() -> Result<()> {
                 if bpfs.contains_key(&sysname) {
                     log::info!("DualSense controller disconnected: {sysname}");
                     if bpfs.remove(&sysname).is_some() {
-                        log::info!("Removed eBPF program for {sysname}");
+                        log::debug!("Removed eBPF program for {sysname}");
                     }
                 }
             }
@@ -62,7 +64,6 @@ fn init_logger() -> Result<()> {
     if connected_to_journal() {
         JournalLog::new()?.install()?;
         log::set_max_level(LevelFilter::Info);
-        log::info!("Logging to journal is active");
     } else {
         TermLogger::init(
             LevelFilter::Debug,

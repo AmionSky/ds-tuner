@@ -9,7 +9,7 @@ anyhow = "1.0.0"
 serde = { version = "1.0.0", features = ["derive"] }
 toml = { version = "0.8.22", default-features = false, features = ["parse"] }
 # Logging
-log = "0.4.27"
+log = { version = "0.4.27", features = ["release_max_level_info"] }
 simplelog = "0.12.2"
 systemd-journal-logger = "2.2.2"
 # Device Monitor

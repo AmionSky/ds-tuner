@@ -59,16 +59,23 @@ fn poll(mut socket: udev::MonitorSocket, tx: Sender<Event>) -> std::io::Result<(
                 socket
                     .iter()
                     .filter(|e| check_sysname(e.sysname()))
-                    .for_each(|e| match e.event_type() {
-                        udev::EventType::Bind => {
-                            tx.send(Event::Added(to_str(e.sysname())))
-                                .expect("Failed to send event!");
+                    .for_each(|e| {
+                        log::debug!(
+                            "Device event: Type={} Name={}",
+                            e.event_type(),
+                            e.sysname().display()
+                        );
+                        match e.event_type() {
+                            udev::EventType::Add => {
+                                tx.send(Event::Added(to_str(e.sysname())))
+                                    .expect("Failed to send event!");
+                            }
+                            udev::EventType::Remove => {
+                                tx.send(Event::Removed(to_str(e.sysname())))
+                                    .expect("Failed to send event!");
+                            }
+                            _ => (), // Ignore
                         }
-                        udev::EventType::Unbind => {
-                            tx.send(Event::Removed(to_str(e.sysname())))
-                                .expect("Failed to send event!");
-                        }
-                        _ => (), // Ignore
                     });
             }
         }
