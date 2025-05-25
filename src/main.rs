@@ -61,6 +61,7 @@ fn init_logger() -> Result<()> {
 
     if connected_to_journal() {
         JournalLog::new()?.install()?;
+        log::debug!("Logging to journal is active");
     } else {
         TermLogger::init(
             LevelFilter::Debug,
