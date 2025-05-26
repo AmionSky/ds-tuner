@@ -97,24 +97,29 @@ fn start() -> Result<()> {
     }
 }
 
+#[cfg(not(feature = "systemd"))]
 fn init_logger() -> Result<()> {
     use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
-    use systemd_journal_logger::{JournalLog, connected_to_journal};
 
-    if connected_to_journal() {
-        JournalLog::new()?.install()?;
-        log::set_max_level(LevelFilter::Info);
-    } else {
-        TermLogger::init(
-            LevelFilter::Debug,
-            ConfigBuilder::new()
-                .set_thread_level(LevelFilter::Trace)
-                .set_target_level(LevelFilter::Trace)
-                .build(),
-            TerminalMode::Mixed,
-            ColorChoice::Auto,
-        )?;
-    }
+    TermLogger::init(
+        LevelFilter::Debug,
+        ConfigBuilder::new()
+            .set_thread_level(LevelFilter::Trace)
+            .set_target_level(LevelFilter::Trace)
+            .build(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )?;
+
+    Ok(())
+}
+
+#[cfg(feature = "systemd")]
+fn init_logger() -> Result<()> {
+    use systemd_journal_logger::JournalLog;
+
+    JournalLog::new()?.install()?;
+    log::set_max_level(log::LevelFilter::Info);
 
     Ok(())
 }

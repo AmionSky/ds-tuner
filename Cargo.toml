@@ -3,6 +3,10 @@ name = "dsmod"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["dep:simplelog"]
+systemd = ["dep:systemd-journal-logger"]
+
 [dependencies]
 anyhow = "1.0.0"
 # Config
@@ -10,8 +14,8 @@ serde = { version = "1.0.0", features = ["derive"] }
 toml = { version = "0.8.22", default-features = false, features = ["parse"] }
 # Logging
 log = { version = "0.4.27", features = ["release_max_level_info"] }
-simplelog = "0.12.2"
-systemd-journal-logger = "2.2.2"
+systemd-journal-logger = { version = "2.2.2", optional = true }
+simplelog = { version = "0.12.2", optional = true }
 # Monitors
 inotify = { version = "0.11.0", default-features = false }
 udev = { version = "0.9.3", features = ["mio"] }
