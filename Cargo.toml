@@ -12,7 +12,8 @@ toml = { version = "0.8.22", default-features = false, features = ["parse"] }
 log = { version = "0.4.27", features = ["release_max_level_info"] }
 simplelog = "0.12.2"
 systemd-journal-logger = "2.2.2"
-# Device Monitor
+# Monitors
+inotify = { version = "0.11.0", default-features = false }
 udev = { version = "0.9.3", features = ["mio"] }
 # Input
 glam = "0.30.0"

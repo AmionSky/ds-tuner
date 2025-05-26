@@ -1,5 +1,3 @@
-enabled = true
-
 [sticks.left]
 deadzone = 0.08
 

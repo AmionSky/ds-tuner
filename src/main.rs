@@ -5,22 +5,24 @@ mod dualsense;
 mod input;
 
 use self::device::Event;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
+use conf::ConfigWatcher;
 use libbpf_rs::Link;
 use std::collections::HashMap;
 
-fn main() -> Result<()> {
+fn main() {
+    if let Err(error) = start() {
+        log::error!("Fatal error: {error}");
+        panic!("{error}");
+    }
+}
+
+fn start() -> Result<()> {
     init_logger()?;
 
     log::info!("DSMOD v{} started!", env!("CARGO_PKG_VERSION"));
 
-    let config = conf::load().map_err(|e| anyhow!("Failed to load configuration file! ({e})"))?;
-
-    if !config.enabled {
-        log::info!("DSMOD is disabled in config!");
-        return Ok(());
-    }
-
+    let config = ConfigWatcher::init();
     let event_rx = device::monitor_and_query()?;
     let mut bpfs: HashMap<String, Link> = HashMap::new();
 
@@ -30,7 +32,7 @@ fn main() -> Result<()> {
                 #[allow(clippy::map_entry)] // wtf clippy
                 if !bpfs.contains_key(&sysname) {
                     log::info!("DualSense controller connected: {sysname}");
-                    match bpf::load(&sysname, &config) {
+                    match bpf::load(&sysname, &config.config()) {
                         Ok(link) => {
                             log::debug!("Loaded eBPF program for {sysname}");
                             bpfs.insert(sysname, link);
