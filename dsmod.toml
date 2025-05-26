@@ -1,5 +1,5 @@
-[sticks.left]
+[stick.left]
 deadzone = 0.08
 
-[sticks.right]
+[stick.right]
 deadzone = 0.12

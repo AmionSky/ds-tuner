@@ -4,55 +4,93 @@ mod device;
 mod dualsense;
 mod input;
 
-use self::device::Event;
 use anyhow::Result;
-use conf::ConfigWatcher;
+use conf::{Config, ConfigWatcher};
 use libbpf_rs::Link;
 use std::collections::HashMap;
 
 fn main() {
+    init_logger().expect("Failed to initialize logger!");
+
     if let Err(error) = start() {
         log::error!("Fatal error: {error}");
         panic!("{error}");
     }
 }
 
-fn start() -> Result<()> {
-    init_logger()?;
+#[derive(Debug)]
+enum Event {
+    DeviceAdded(String),
+    DeviceRemoved(String),
+    ConfigChanged,
+}
 
+struct BpfStore(HashMap<String, Link>);
+
+impl BpfStore {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn contains(&self, sysname: &String) -> bool {
+        self.0.contains_key(sysname)
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        self.0.keys().map(|k| k.to_owned()).collect()
+    }
+
+    pub fn load(&mut self, sysname: String, config: &Config) {
+        match bpf::load(&sysname, config) {
+            Ok(link) => {
+                log::debug!("Loaded eBPF program for {sysname}");
+                self.0.insert(sysname, link);
+            }
+            Err(error) => {
+                log::error!("Failed to load eBPF program for {sysname} ({error})");
+            }
+        };
+    }
+
+    pub fn unload(&mut self, sysname: &String) {
+        if self.0.remove(sysname).is_some() {
+            log::debug!("Removed eBPF program for {sysname}");
+        }
+    }
+}
+
+fn start() -> Result<()> {
     log::info!("DSMOD v{} started!", env!("CARGO_PKG_VERSION"));
 
-    let config = ConfigWatcher::init();
-    let event_rx = device::monitor_and_query()?;
-    let mut bpfs: HashMap<String, Link> = HashMap::new();
+    let (main_tx, main_rx) = std::sync::mpsc::sync_channel(1);
+
+    let config = ConfigWatcher::init(main_tx.clone());
+    let mut bpf_store = BpfStore::new();
+    device::monitor_and_query(main_tx.clone())?;
 
     loop {
-        match event_rx.recv()? {
-            Event::Added(sysname) => {
-                #[allow(clippy::map_entry)] // wtf clippy
-                if !bpfs.contains_key(&sysname) {
+        match main_rx.recv()? {
+            Event::DeviceAdded(sysname) => {
+                if !bpf_store.contains(&sysname) {
                     log::info!("DualSense controller connected: {sysname}");
-                    match bpf::load(&sysname, &config.config()) {
-                        Ok(link) => {
-                            log::debug!("Loaded eBPF program for {sysname}");
-                            bpfs.insert(sysname, link);
-                        }
-                        Err(error) => {
-                            log::error!("Failed to load eBPF program for {sysname} ({error})");
-                        }
-                    };
+                    bpf_store.load(sysname, &config.config());
                 } else {
                     // Probably can only be caused by a race condition between
                     // the start of the device monitor and the manual query
                     log::warn!("Duplicate device found: {sysname}");
                 }
             }
-            Event::Removed(sysname) => {
-                if bpfs.contains_key(&sysname) {
+            Event::DeviceRemoved(sysname) => {
+                if bpf_store.contains(&sysname) {
                     log::info!("DualSense controller disconnected: {sysname}");
-                    if bpfs.remove(&sysname).is_some() {
-                        log::debug!("Removed eBPF program for {sysname}");
-                    }
+                    bpf_store.unload(&sysname);
+                }
+            }
+            Event::ConfigChanged => {
+                log::info!("Configuration changed. Reloading.");
+                for sysname in bpf_store.keys() {
+                    bpf_store.unload(&sysname);
+                    bpf_store.load(sysname, &config.config());
                 }
             }
         }

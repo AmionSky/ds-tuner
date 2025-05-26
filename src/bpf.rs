@@ -18,8 +18,8 @@ pub fn load(sysname: &str, config: &Config) -> Result<Link> {
 
     let mut skel = open_skel.load()?;
 
-    update_stick_lut(skel.maps.left_stick, &gen_stick_lut(&config.sticks.left))?;
-    update_stick_lut(skel.maps.right_stick, &gen_stick_lut(&config.sticks.right))?;
+    update_stick_lut(skel.maps.left_stick, &gen_stick_lut(&config.stick.left))?;
+    update_stick_lut(skel.maps.right_stick, &gen_stick_lut(&config.stick.right))?;
 
     Ok(skel.maps.dsmod.attach_struct_ops()?)
 }
