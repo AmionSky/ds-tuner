@@ -1,0 +1,38 @@
+_name=ds-tuner
+
+pkgname=ds-tuner
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="DualSense controller raw input modifier"
+arch=(x86_64)
+url="https://github.com/AmionSky/ds-tuner"
+license=(GPL-3.0-only)
+depends=(libbpf systemd-libs glibc gcc-libs)
+makedepends=(cargo clang linux-headers)
+backup=("etc/ds-tuner.toml")
+options=(!lto)
+install=service.install
+# source=("$_name::git+$url#tag=v$pkgver")
+# sha256sums=('SKIP')
+
+prepare() {
+    cd "$_name"
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$_name"
+    cargo build --frozen --release --no-default-features --features systemd
+}
+
+check() {
+    cd "$_name"
+    cargo test --frozen --release --no-default-features --features systemd
+}
+
+package() {
+    cd "$_name"
+    install -Dm755 "target/release/$_name" -t "$pkgdir/usr/bin/"
+    install -Dm644 "$_name.toml" -t "$pkgdir/etc/"
+    install -Dm644 "$_name.service" -t "$pkgdir/usr/lib/systemd/system/"
+}

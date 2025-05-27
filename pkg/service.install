@@ -1,0 +1,9 @@
+post_install() {
+    systemctl enable ds-tuner.service
+    systemctl start ds-tuner.service
+}
+
+pre_remove() {
+    systemctl stop ds-tuner.service
+    systemctl disable ds-tuner.service
+}

@@ -218,7 +218,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dsmod"
+name = "ds-tuner"
 version = "0.1.0"
 dependencies = [
  "anyhow",

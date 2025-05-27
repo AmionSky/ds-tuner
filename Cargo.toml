@@ -1,7 +1,8 @@
 [package]
-name = "dsmod"
+name = "ds-tuner"
 version = "0.1.0"
 edition = "2024"
+description = "DualSense controller raw input modifier"
 
 [features]
 default = ["dep:simplelog"]

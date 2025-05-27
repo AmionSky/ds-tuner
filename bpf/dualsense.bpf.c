@@ -63,7 +63,7 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
 }
 
 SEC(".struct_ops.link")
-struct hid_bpf_ops dsmod = {
+struct hid_bpf_ops dstuner = {
     .hid_device_event = (void *)mod_device_event,
 };
 

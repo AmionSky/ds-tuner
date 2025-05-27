@@ -1,9 +1,9 @@
 [Unit]
-Description=DualSense input modifier
+Description=DualSense controller raw input modifier
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/dsmod
+ExecStart=/usr/bin/ds-tuner
 Restart=on-abnormal
 
 [Install]

@@ -5,10 +5,10 @@ use serde::Deserialize;
 use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-#[cfg(debug_assertions)]
-const PATH: &str = "./dsmod.toml";
-#[cfg(not(debug_assertions))]
-const PATH: &str = "/etc/dsmod.toml";
+#[cfg(not(feature = "systemd"))]
+const PATH: &str = "./ds-tuner.toml";
+#[cfg(feature = "systemd")]
+const PATH: &str = "/etc/ds-tuner.toml";
 
 #[derive(Debug, Default, Deserialize, PartialEq)]
 pub struct Sticks {

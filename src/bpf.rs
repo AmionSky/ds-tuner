@@ -21,13 +21,13 @@ pub fn load(sysname: &str, config: &Config) -> Result<Link> {
     update_stick_lut(skel.maps.left_stick, &gen_stick_lut(&config.stick.left))?;
     update_stick_lut(skel.maps.right_stick, &gen_stick_lut(&config.stick.right))?;
 
-    Ok(skel.maps.dsmod.attach_struct_ops()?)
+    Ok(skel.maps.dstuner.attach_struct_ops()?)
 }
 
 fn insert_sysnum(open_skel: &mut skel::OpenDualsenseSkel, sysname: &str) -> Result<()> {
     let initval = open_skel
         .maps
-        .dsmod
+        .dstuner
         .initial_value_mut()
         .ok_or(anyhow!("Couldn't modify eBPF initial value!"))?;
 

@@ -60,7 +60,7 @@ impl BpfStore {
 }
 
 fn start() -> Result<()> {
-    log::info!("DSMOD v{} started!", env!("CARGO_PKG_VERSION"));
+    log::info!("DS Tuner v{} started!", env!("CARGO_PKG_VERSION"));
 
     let (main_tx, main_rx) = std::sync::mpsc::sync_channel(1);
 
