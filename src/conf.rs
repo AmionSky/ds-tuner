@@ -17,6 +17,7 @@ pub struct Sticks {
 }
 
 #[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct Config {
     pub stick: Sticks,
 }
