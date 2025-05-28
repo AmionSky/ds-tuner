@@ -1,5 +1,25 @@
-[stick.left]
-deadzone = 0.08
+# Any options left unset uses the default values.
 
+
+# Left Stick (LS)
+[stick.left]
+# Deadzone of the analog stick in 0.0 to 1.0+ range. (default is 0.0)
+# deadzone = 0.0
+
+# Should the output get rescaled to start from the center. (default is true)
+# deadzone_rescale = true
+
+# (Optional) Limits the max radius of the input.
+# limit = 1.0
+
+
+# Right Stick (RS)
 [stick.right]
-deadzone = 0.12
+# Deadzone of the analog stick in 0.0 to 1.0+ range. (default is 0.0)
+# deadzone = 0.0
+
+# Should the output get rescaled to start from the center. (default is true)
+# deadzone_rescale = true
+
+# (Optional) Limits the max radius of the input.
+# limit = 1.0
