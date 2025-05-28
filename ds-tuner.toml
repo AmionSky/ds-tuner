@@ -6,8 +6,8 @@
 # Deadzone of the analog stick in 0.0 to 1.0+ range. (default is 0.0)
 # deadzone = 0.0
 
-# Should the output get rescaled to start from the center. (default is true)
-# deadzone_rescale = true
+# Should the input get rescaled to start from the center after the deadzone has been applied. (default is true)
+# rescale = true
 
 # (Optional) Limits the max radius of the input.
 # limit = 1.0
@@ -18,8 +18,26 @@
 # Deadzone of the analog stick in 0.0 to 1.0+ range. (default is 0.0)
 # deadzone = 0.0
 
-# Should the output get rescaled to start from the center. (default is true)
-# deadzone_rescale = true
+# Should the input get rescaled to start from the center after the deadzone has been applied. (default is true)
+# rescale = true
 
 # (Optional) Limits the max radius of the input.
 # limit = 1.0
+
+
+# Left Trigger (L2)
+[trigger.left]
+# Deadzone of the trigger in 0.0 to 1.0 range. (default is 0.0)
+# deadzone = 0.0
+
+# Should the input get rescaled to start from zero after the deadzone has been applied. (default is true)
+# rescale = true
+
+
+# Right Trigger (R2)
+[trigger.right]
+# Deadzone of the trigger in 0.0 to 1.0 range. (default is 0.0)
+# deadzone = 0.0
+
+# Should the input get rescaled to start from zero after the deadzone has been applied. (default is true)
+# rescale = true

@@ -1,5 +1,5 @@
 use crate::Event;
-use crate::input::StickOptions;
+use crate::input::{StickOptions, TriggerOptions};
 use anyhow::Result;
 use serde::Deserialize;
 use std::sync::mpsc::SyncSender;
@@ -11,6 +11,7 @@ const PATH: &str = "./ds-tuner.toml";
 const PATH: &str = "/etc/ds-tuner.toml";
 
 #[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct Sticks {
     pub left: StickOptions,
     pub right: StickOptions,
@@ -18,8 +19,16 @@ pub struct Sticks {
 
 #[derive(Debug, Default, Deserialize, PartialEq)]
 #[serde(default)]
+pub struct Triggers {
+    pub left: TriggerOptions,
+    pub right: TriggerOptions,
+}
+
+#[derive(Debug, Default, Deserialize, PartialEq)]
+#[serde(default)]
 pub struct Config {
     pub stick: Sticks,
+    pub trigger: Triggers,
 }
 
 pub struct ConfigWatcher {
@@ -46,6 +55,7 @@ fn try_load(mutex: &Mutex<Config>) -> bool {
         Ok(config) => {
             let mut lock = mutex.lock().expect("Config mutex is invalid!");
             if *lock != config {
+                log::debug!("Updated config: {:#?}", config);
                 *lock = config;
                 return true;
             }

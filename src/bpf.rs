@@ -3,7 +3,6 @@ mod skel {
 }
 
 use crate::conf::Config;
-use crate::input::gen_stick_lut;
 use anyhow::{Result, anyhow};
 use libbpf_rs::skel::{OpenSkel, SkelBuilder};
 use libbpf_rs::{Link, MapCore, MapFlags};
@@ -18,8 +17,10 @@ pub fn load(sysname: &str, config: &Config) -> Result<Link> {
 
     let mut skel = open_skel.load()?;
 
-    update_stick_lut(skel.maps.left_stick, &gen_stick_lut(&config.stick.left))?;
-    update_stick_lut(skel.maps.right_stick, &gen_stick_lut(&config.stick.right))?;
+    update_stick_lut(skel.maps.left_stick, &config.stick.left.gen_lut())?;
+    update_stick_lut(skel.maps.right_stick, &config.stick.right.gen_lut())?;
+    update_trigger_lut(skel.maps.left_trigger, &config.trigger.left.gen_lut())?;
+    update_trigger_lut(skel.maps.right_trigger, &config.trigger.right.gen_lut())?;
 
     Ok(skel.maps.dstuner.attach_struct_ops()?)
 }
@@ -50,6 +51,16 @@ pub fn sysnum(sysname: &str) -> Option<u32> {
 
 fn update_stick_lut<M: MapCore>(map: M, lut: &[u16]) -> libbpf_rs::Result<()> {
     debug_assert_eq!(lut.len(), 256 * 256);
+    for (k, v) in lut.iter().enumerate() {
+        let key = (k as u32).to_ne_bytes();
+        let val = v.to_ne_bytes();
+        map.update(&key, &val, MapFlags::ANY)?;
+    }
+    Ok(())
+}
+
+fn update_trigger_lut<M: MapCore>(map: M, lut: &[u8]) -> libbpf_rs::Result<()> {
+    debug_assert_eq!(lut.len(), 256);
     for (k, v) in lut.iter().enumerate() {
         let key = (k as u32).to_ne_bytes();
         let val = v.to_ne_bytes();

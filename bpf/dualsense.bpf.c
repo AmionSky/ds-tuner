@@ -9,6 +9,13 @@ struct stick_lut {
     __type(key, u32);
 } left_stick SEC(".maps"), right_stick SEC(".maps");
 
+struct trigger_lut {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 256);
+    __type(value, u8);
+    __type(key, u32);
+} left_trigger SEC(".maps"), right_trigger SEC(".maps");
+
 void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
 {
     u32 index = *x + *y * 256;
@@ -19,6 +26,17 @@ void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
         *y = (v >> 8) & 0x00FF;
     } else {
         bpf_printk("%s: Stick LUT value is NULL!", __func__);
+    }
+}
+
+void apply_trigger(u8 *v, struct trigger_lut *lut)
+{
+    u32 index = *v;
+    u8 *value = bpf_map_lookup_elem(lut, &index);
+    if (value) {
+        *v = *value;
+    } else {
+        bpf_printk("%s: Trigger LUT value is NULL!", __func__);
     }
 }
 
@@ -55,6 +73,8 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
     // Apply modifications
     apply_stick(&input->x, &input->y, &left_stick);
     apply_stick(&input->rx, &input->ry, &right_stick);
+    apply_trigger(&input->z, &left_trigger);
+    apply_trigger(&input->rz, &right_trigger);
 
     // Update CRC if using Bluetooth
     if (is_bt) update_crc(data, DS_INPUT_REPORT_BT_SIZE);
