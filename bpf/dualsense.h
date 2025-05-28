@@ -11,6 +11,23 @@
 
 #define PS_INPUT_CRC32_SEED 0xA1;
 
+/* Button masks for DualSense input report. */
+#define DS_BUTTONS0_SQUARE		(1 << 4)
+#define DS_BUTTONS0_CROSS		(1 << 5)
+#define DS_BUTTONS0_CIRCLE		(1 << 6)
+#define DS_BUTTONS0_TRIANGLE	(1 << 7)
+#define DS_BUTTONS1_L1			(1 << 0)
+#define DS_BUTTONS1_R1			(1 << 1)
+#define DS_BUTTONS1_L2			(1 << 2)
+#define DS_BUTTONS1_R2			(1 << 3)
+#define DS_BUTTONS1_CREATE		(1 << 4)
+#define DS_BUTTONS1_OPTIONS		(1 << 5)
+#define DS_BUTTONS1_L3			(1 << 6)
+#define DS_BUTTONS1_R3			(1 << 7)
+#define DS_BUTTONS2_PS_HOME		(1 << 0)
+#define DS_BUTTONS2_TOUCHPAD	(1 << 1)
+#define DS_BUTTONS2_MIC_MUTE	(1 << 2)
+
 #define PACKED __attribute__((__packed__))
 
 struct PACKED dualsense_touch_point {

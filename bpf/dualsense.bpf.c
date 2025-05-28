@@ -43,20 +43,22 @@ void apply_trigger(u8 *v, struct trigger_lut *lut)
 SEC("struct_ops/hid_device_event")
 int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
 {
+    #define GET_DATA(size) data = hid_bpf_get_data(hid_ctx, 0, size); if (!data) return 0;
+    u8 *data;
+
     // Get the report ID
-    u8 *data = hid_bpf_get_data(hid_ctx, 0, 1);
-    if (!data) return 0; // EPERM
+    GET_DATA(1)
 
     // Get the input data
     bool is_bt = false;
     struct dualsense_input_report *input;
     switch (*data) {
         case DS_INPUT_REPORT_USB:
-            data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_USB_SIZE);
+            GET_DATA(DS_INPUT_REPORT_USB_SIZE)
             input = (struct dualsense_input_report*)&data[1];
             break;
         case DS_INPUT_REPORT_BT:
-            data = hid_bpf_get_data(hid_ctx, 0, DS_INPUT_REPORT_BT_SIZE);
+            GET_DATA(DS_INPUT_REPORT_BT_SIZE)
             input = (struct dualsense_input_report*)&data[2];
             is_bt = true;
             break;
@@ -64,17 +66,19 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
             return 0;
     }
 
-    if (!data || !input) return 0; // EPERM or incorrect data size
-
     // Check CRC if using Bluetooth
     if (is_bt && !check_crc(data, DS_INPUT_REPORT_BT_SIZE))
         return 0; // Skip on incorrect CRC
 
-    // Apply modifications
+    // Apply LUT values
     apply_stick(&input->x, &input->y, &left_stick);
     apply_stick(&input->rx, &input->ry, &right_stick);
     apply_trigger(&input->z, &left_trigger);
     apply_trigger(&input->rz, &right_trigger);
+
+    // Recalculate trigger press treshold
+    input->buttons[1] &= (DS_BUTTONS1_L2 | DS_BUTTONS1_R2) ^ 0xFF;
+    input->buttons[1] |= DS_BUTTONS1_L2 * (input->z > 0) + DS_BUTTONS1_R2 * (input->rz > 0);
 
     // Update CRC if using Bluetooth
     if (is_bt) update_crc(data, DS_INPUT_REPORT_BT_SIZE);
