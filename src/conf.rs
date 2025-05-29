@@ -39,7 +39,9 @@ impl ConfigWatcher {
     pub fn init(tx: SyncSender<Event>) -> Self {
         let config = Arc::new(Mutex::new(Config::default()));
         spawn_watcher(tx, config.clone());
-        try_load(&config);
+        if !try_load(&config) {
+            log::info!("Using default config")
+        }
         Self { config }
     }
 
