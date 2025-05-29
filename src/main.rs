@@ -1,7 +1,6 @@
 mod bpf;
 mod conf;
 mod device;
-mod dualsense;
 mod input;
 
 use anyhow::Result;

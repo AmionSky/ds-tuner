@@ -1,9 +1,14 @@
 use crate::Event;
-use crate::dualsense::{DRIVER, SUBSYSTEM, check_sysname};
 use anyhow::Result;
 use std::ffi::OsStr;
+use std::os::unix::ffi::OsStrExt;
 use std::sync::mpsc::SyncSender;
 use udev::mio::{Events, Interest, Poll, Token};
+
+const SUBSYSTEM: &str = "hid";
+const SUPPORTED: [(&str, &str); 1] = [
+    ("054C", "0CE6"), // DualSense
+];
 
 pub fn monitor_and_query(tx: SyncSender<Event>) -> Result<()> {
     spawn_monitor(tx.clone());
@@ -11,16 +16,37 @@ pub fn monitor_and_query(tx: SyncSender<Event>) -> Result<()> {
     Ok(())
 }
 
+/// Checks the 'sysname' for the correct vendor and product ID.
+pub fn check_sysname(name: &OsStr) -> bool {
+    let bytes = name.as_bytes();
+
+    if bytes.len() != 19 {
+        log::debug!("Device's SYSNAME length is invalid");
+        return false;
+    }
+
+    let vendor = &bytes[5..9];
+    let product = &bytes[10..14];
+
+    for (vid, pid) in SUPPORTED {
+        if vendor == vid.as_bytes() && product == pid.as_bytes() {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn query(tx: SyncSender<Event>) -> Result<()> {
     let mut query = udev::Enumerator::new()?;
     query.match_subsystem(SUBSYSTEM)?;
-    query.match_property("DRIVER", DRIVER)?;
 
     let list = query.scan_devices()?;
     for device in list {
-        log::debug!("Found device: {}", device.sysname().display());
         if check_sysname(device.sysname()) {
-            tx.send(Event::DeviceAdded(to_str(device.sysname())))?;
+            let sysname = to_str(device.sysname());
+            log::debug!("Found device: {sysname}");
+            tx.send(Event::DeviceAdded(sysname))?;
         }
     }
 
@@ -32,55 +58,43 @@ fn spawn_monitor(tx: SyncSender<Event>) {
         .name("device_monitor".into())
         .spawn(move || {
             if let Err(error) = monitor(tx) {
-                log::error!("Udev monitor stopped: {error}");
+                log::error!("Device monitor stopped: {error}");
             }
         })
         .expect("Failed to spawn device monitor thread!");
 }
 
 fn monitor(tx: SyncSender<Event>) -> std::io::Result<()> {
-    let socket = udev::MonitorBuilder::new()?
+    let mut socket = udev::MonitorBuilder::new()?
         .match_subsystem(SUBSYSTEM)?
         .listen()?;
 
-    poll(socket, tx)
-}
-
-fn poll(mut socket: udev::MonitorSocket, tx: SyncSender<Event>) -> std::io::Result<()> {
     let mut poll = Poll::new()?;
-    poll.registry().register(
-        &mut socket,
-        Token(0),
-        Interest::READABLE | Interest::WRITABLE,
-    )?;
+    poll.registry()
+        .register(&mut socket, Token(0), Interest::READABLE)?;
 
-    let mut events = Events::with_capacity(8);
+    let mut events = Events::with_capacity(1);
     loop {
         poll.poll(&mut events, None)?;
 
-        for event in &events {
-            if event.token() == Token(0) && event.is_writable() {
-                socket
-                    .iter()
-                    .filter(|e| check_sysname(e.sysname()))
-                    .for_each(|e| {
-                        log::debug!(
-                            "Device event: Type={} Name={}",
-                            e.event_type(),
-                            e.sysname().display()
-                        );
-                        match e.event_type() {
-                            udev::EventType::Add => {
-                                tx.send(Event::DeviceAdded(to_str(e.sysname())))
-                                    .expect("Failed to send event!");
-                            }
-                            udev::EventType::Remove => {
-                                tx.send(Event::DeviceRemoved(to_str(e.sysname())))
-                                    .expect("Failed to send event!");
-                            }
-                            _ => (), // Ignore
-                        }
-                    });
+        // Since all the events are in `socket` just ignore `events`
+        for event in socket.iter().filter(|e| check_sysname(e.sysname())) {
+            log::debug!(
+                "Device event: Type={} Name={}",
+                event.event_type(),
+                event.sysname().display()
+            );
+
+            match event.event_type() {
+                udev::EventType::Add => {
+                    tx.send(Event::DeviceAdded(to_str(event.sysname())))
+                        .expect("Failed to send device event!");
+                }
+                udev::EventType::Remove => {
+                    tx.send(Event::DeviceRemoved(to_str(event.sysname())))
+                        .expect("Failed to send device event!");
+                }
+                _ => (), // Ignore
             }
         }
     }
