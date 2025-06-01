@@ -1,0 +1,2 @@
+# Remove vmlinux.h from GitHub language statistics
+bpf/vmlinux.h linguist-vendored
