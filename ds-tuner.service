@@ -3,7 +3,7 @@ Description=DualSense controller raw input modifier
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/ds-tuner
+ExecStart=/usr/bin/ds-tuner start --config /etc/ds-tuner.toml
 Restart=on-abnormal
 
 [Install]

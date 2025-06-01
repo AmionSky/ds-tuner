@@ -1,3 +1,5 @@
+# This is a reference PKGBUILD file.
+# To use this you need to specify a source.
 _name=ds-tuner
 
 pkgname=ds-tuner
@@ -22,12 +24,12 @@ prepare() {
 
 build() {
     cd "$_name"
-    cargo build --frozen --release --no-default-features --features systemd
+    cargo build --frozen --release --features systemd
 }
 
 check() {
     cd "$_name"
-    cargo test --frozen --release --no-default-features --features systemd
+    cargo test --frozen --release --features systemd
 }
 
 package() {

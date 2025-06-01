@@ -11,27 +11,32 @@ _Full list of options can be found in [ds-tuner.toml](ds-tuner.toml)._
 
 ### Supported Controllers
 
- * DualSense
-
 Currently only the base DualSense controller is supported since it's the only one I own, but other Sony controllers could be supported supported as well with minimal changes. (PRs welcome)
 
 ## Usage
 
 Can be used either manually or as a systemd service. The configuration file will be hotreloaded upon change.
 
-### Manually
+### Manually (with cargo install)
 
-Compile and then run the execuatable as root.
+Install it with cargo.
 
 ```sh
-cargo build --release && sudo ./target/release/ds-tuner
+cargo install ds-tuner
 ```
 
-_The config will be read from the current working directory._
+Then run execuatable as root. Optionally specify the config file to use.
+
+```sh
+sudo ds-tuner start --config <path to your config file>
+```
+
+_The config path defaults to `ds-tuner.toml` in the current working directory._
 
 ### Syetemd Service
 
 Example instructions to install it can be found in [PKGBUILD](pkg/PKGBUILD).
 
 ## License
+
 [GPL-3.0-only](LICENSE) - Copyright (C) 2025 Csányi István

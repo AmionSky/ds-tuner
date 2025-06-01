@@ -125,9 +125,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.24"
+version = "1.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16595d3be041c03b09d08d0858631facccee9221e579704070e6e9e4915d3bc7"
+checksum = "d0fc897dc1e865cc67c0e05a836d9d3f1df3cbe442aa4a9473b18e12624a4951"
 dependencies = [
  "shlex",
 ]
@@ -158,9 +158,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.38"
+version = "4.5.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed93b9805f8ba930df42c2590f05453d5ec36cbb85d018868a5b24d31f6ac000"
+checksum = "fd60e63e9be68e5fb56422e397cf9baddded06dae1d2e523401542383bc72a9f"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -168,9 +168,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.38"
+version = "4.5.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "379026ff283facf611b0ea629334361c4211d1b12ee01024eec1591133b04120"
+checksum = "89cc6392a1f72bbeb820d71f32108f61fdaf18bc526e1d23954168a67759ef51"
 dependencies = [
  "anstream",
  "anstyle",
@@ -222,10 +222,12 @@ name = "ds-tuner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "clap",
  "glam",
  "inotify",
  "libbpf-cargo",
  "libbpf-rs",
+ "libc",
  "log",
  "serde",
  "simplelog",
@@ -387,8 +389,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libbpf-cargo"
-version = "0.25.0-beta.1"
-source = "git+https://github.com/libbpf/libbpf-rs.git?rev=3ed13c8cb0f441584ee392e5c19aacb55b71ad12#3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "626c6fbcb5088716de86d0ccbdccedc17b13e59f41a605a3274029335e71fcbb"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -405,8 +408,9 @@ dependencies = [
 
 [[package]]
 name = "libbpf-rs"
-version = "0.25.0-beta.1"
-source = "git+https://github.com/libbpf/libbpf-rs.git?rev=3ed13c8cb0f441584ee392e5c19aacb55b71ad12#3ed13c8cb0f441584ee392e5c19aacb55b71ad12"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e23d252d93e246c8787198369f06806c99c5077b5295be29505295f4e5426dc4"
 dependencies = [
  "bitflags",
  "libbpf-sys",

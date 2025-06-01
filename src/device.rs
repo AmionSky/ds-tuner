@@ -1,4 +1,4 @@
-use crate::Event;
+use crate::service::Event;
 use anyhow::Result;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;

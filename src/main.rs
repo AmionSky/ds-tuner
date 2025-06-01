@@ -1,110 +1,75 @@
 mod bpf;
+mod cli;
 mod conf;
 mod device;
 mod input;
+mod instance;
+mod service;
 
 use anyhow::Result;
-use conf::{Config, ConfigWatcher};
-use libbpf_rs::Link;
-use std::collections::HashMap;
+use clap::Parser;
+use cli::{Cli, Commands};
+use instance::SingleInstance;
+use log::LevelFilter;
+use std::path::PathBuf;
+
+const NAME: &str = "DS Tuner";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    init_logger().expect("Failed to initialize logger!");
+    let cli = Cli::parse();
+    init_logger(&cli).expect("Failed to initialize logger!");
 
-    if let Err(error) = start() {
+    match cli.command {
+        Commands::Start { config } => start(config),
+    }
+}
+
+fn start(config_path: PathBuf) {
+    // Check if the service is already running
+    let instance = SingleInstance::new();
+    if !instance.single() {
+        log::info!("{NAME} is already running!");
+        return;
+    }
+
+    log::info!("{NAME} v{VERSION} started!");
+
+    // Start the service
+    if let Err(error) = service::start(config_path) {
         log::error!("Fatal error: {error}");
         panic!("{error}");
     }
 }
 
-#[derive(Debug)]
-enum Event {
-    DeviceAdded(String),
-    DeviceRemoved(String),
-    ConfigChanged,
-}
-
-struct BpfStore(HashMap<String, Link>);
-
-impl BpfStore {
-    pub fn new() -> Self {
-        Self(HashMap::new())
-    }
-
-    pub fn contains(&self, sysname: &String) -> bool {
-        self.0.contains_key(sysname)
-    }
-
-    pub fn keys(&self) -> Vec<String> {
-        self.0.keys().map(|k| k.to_owned()).collect()
-    }
-
-    pub fn load(&mut self, sysname: String, config: &Config) {
-        match bpf::load(&sysname, config) {
-            Ok(link) => {
-                log::debug!("Loaded eBPF program for {sysname}");
-                self.0.insert(sysname, link);
-            }
-            Err(error) => {
-                log::error!("Failed to load eBPF program for {sysname} ({error})");
-            }
-        };
-    }
-
-    pub fn unload(&mut self, sysname: &String) {
-        if self.0.remove(sysname).is_some() {
-            log::debug!("Removed eBPF program for {sysname}");
-        }
-    }
-}
-
-fn start() -> Result<()> {
-    log::info!("DS Tuner v{} started!", env!("CARGO_PKG_VERSION"));
-
-    let (main_tx, main_rx) = std::sync::mpsc::sync_channel(1);
-
-    let config = ConfigWatcher::init(main_tx.clone());
-    let mut bpf_store = BpfStore::new();
-    device::monitor_and_query(main_tx.clone())?;
-
-    loop {
-        match main_rx.recv()? {
-            Event::DeviceAdded(sysname) => {
-                if !bpf_store.contains(&sysname) {
-                    log::info!("DualSense controller connected: {sysname}");
-                    bpf_store.load(sysname, &config.config());
-                } else {
-                    // Probably can only be caused by a race condition between
-                    // the start of the device monitor and the manual query
-                    log::warn!("Duplicate device found: {sysname}");
-                }
-            }
-            Event::DeviceRemoved(sysname) => {
-                if bpf_store.contains(&sysname) {
-                    log::info!("DualSense controller disconnected: {sysname}");
-                    bpf_store.unload(&sysname);
-                }
-            }
-            Event::ConfigChanged => {
-                log::info!("Configuration changed. Reloading.");
-                for sysname in bpf_store.keys() {
-                    bpf_store.unload(&sysname);
-                    bpf_store.load(sysname, &config.config());
-                }
+fn init_logger(options: &Cli) -> Result<()> {
+    let level = match options.verbose {
+        true => LevelFilter::Trace,
+        false => {
+            if cfg!(debug_assertions) {
+                LevelFilter::Debug
+            } else {
+                LevelFilter::Info
             }
         }
+    };
+
+    #[cfg(feature = "systemd")]
+    if options.journal {
+        return init_journal(level);
     }
+
+    init_termlogger(level)
 }
 
-#[cfg(not(feature = "systemd"))]
-fn init_logger() -> Result<()> {
+fn init_termlogger(level: LevelFilter) -> Result<()> {
     use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 
     TermLogger::init(
-        LevelFilter::Debug,
+        level,
         ConfigBuilder::new()
-            .set_thread_level(LevelFilter::Trace)
-            .set_target_level(LevelFilter::Trace)
+            .set_thread_level(LevelFilter::Off)
+            .set_target_level(LevelFilter::Off)
             .build(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
@@ -114,11 +79,11 @@ fn init_logger() -> Result<()> {
 }
 
 #[cfg(feature = "systemd")]
-fn init_logger() -> Result<()> {
+fn init_journal(level: LevelFilter) -> Result<()> {
     use systemd_journal_logger::JournalLog;
 
     JournalLog::new()?.install()?;
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(level);
 
     Ok(())
 }
