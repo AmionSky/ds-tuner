@@ -6,6 +6,11 @@ license = "GPL-3.0-only"
 repository = "https://github.com/AmionSky/ds-tuner"
 description = "DualSense controller raw input modifier"
 categories = ["command-line-utilities"]
+exclude = [
+    "ds-tuner.service",
+    "ds-tuner.toml",
+    "pkg/*"
+]
 
 [features]
 default = []
