@@ -1,6 +1,6 @@
 [package]
 name = "ds-tuner"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "GPL-3.0-only"
 repository = "https://github.com/AmionSky/ds-tuner"
@@ -23,7 +23,7 @@ libc = "0.2"
 clap = { version = "4.5.39", features = ["derive"] }
 # Config
 serde = { version = "1.0.0", features = ["derive"] }
-toml = { version = "0.8.22", default-features = false, features = ["parse"] }
+toml = { version = "0.9.3", default-features = false, features = ["std", "serde", "parse"] }
 # Logging
 log = { version = "0.4.27", features = ["release_max_level_debug"] }
 systemd-journal-logger = { version = "2.2.2", optional = true }

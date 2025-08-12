@@ -53,7 +53,7 @@ fn try_load<P: AsRef<Path>>(path: P, mutex: &Mutex<Config>) -> bool {
         Ok(config) => {
             let mut lock = mutex.lock().expect("Config mutex is invalid!");
             if *lock != config {
-                log::debug!("Updated config: {:#?}", config);
+                log::debug!("Updated config: {config:#?}");
                 *lock = config;
                 return true;
             }
