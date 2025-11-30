@@ -21,6 +21,7 @@ pub fn load(sysname: &str, config: &Config) -> Result<Link> {
     update_stick_lut(skel.maps.right_stick, &config.stick.right.gen_lut())?;
     update_trigger_lut(skel.maps.left_trigger, &config.trigger.left.gen_lut())?;
     update_trigger_lut(skel.maps.right_trigger, &config.trigger.right.gen_lut())?;
+    update_smoothing(skel.maps.smoothing, config)?;
 
     Ok(skel.maps.dstuner.attach_struct_ops()?)
 }
@@ -66,5 +67,19 @@ fn update_trigger_lut<M: MapCore>(map: M, lut: &[u8]) -> libbpf_rs::Result<()> {
         let val = v.to_ne_bytes();
         map.update(&key, &val, MapFlags::ANY)?;
     }
+    Ok(())
+}
+
+fn update_smoothing<M: MapCore>(map: M, config: &Config) -> libbpf_rs::Result<()> {
+    map.update(
+        &0u32.to_ne_bytes(),
+        &config.stick.left.smoothing.to_ne_bytes(),
+        MapFlags::ANY,
+    )?;
+    map.update(
+        &1u32.to_ne_bytes(),
+        &config.stick.right.smoothing.to_ne_bytes(),
+        MapFlags::ANY,
+    )?;
     Ok(())
 }

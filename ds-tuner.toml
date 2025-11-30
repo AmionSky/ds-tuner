@@ -9,8 +9,11 @@
 # Should the input get rescaled to start from the center after the deadzone has been applied. (default is true)
 # rescale = true
 
-# (Optional) Limits the max radius of the input.
+# Limits the max radius of the input. (default is unset (no limit))
 # limit = 1.0
+
+# Smoothing over time. Higher values increases latency. Depends on polling rate. (default is 0 (no smoothing))
+# smoothing = 0
 
 
 # Right Stick (RS)
@@ -21,8 +24,11 @@
 # Should the input get rescaled to start from the center after the deadzone has been applied. (default is true)
 # rescale = true
 
-# (Optional) Limits the max radius of the input.
+# Limits the max radius of the input. (default is unset (no limit))
 # limit = 1.0
+
+# Smoothing over time. Higher values increases latency. Depends on polling rate. (default is 0 (no smoothing))
+# smoothing = 0
 
 
 # Left Trigger (L2)

@@ -15,6 +15,8 @@ pub struct StickOptions {
     pub rescale: bool,
     /// Limits the max radius.
     pub limit: Option<f64>,
+    /// Smoothing over time.
+    pub smoothing: u8,
 }
 
 impl Default for StickOptions {
@@ -23,6 +25,7 @@ impl Default for StickOptions {
             deadzone: 0.0,
             rescale: true,
             limit: None,
+            smoothing: 0,
         }
     }
 }
@@ -61,6 +64,7 @@ fn apply_deadzone(input: &mut DVec2, options: &StickOptions) {
     if len_squared < sq(options.deadzone) {
         *input = DVec2::ZERO;
     } else if options.rescale {
+        #[allow(clippy::collapsible_if)]
         if let Some(dir) = input.try_normalize() {
             let mut len = len_squared.sqrt();
             // Scale the length to take into account the deadzone.
@@ -73,6 +77,7 @@ fn apply_deadzone(input: &mut DVec2, options: &StickOptions) {
 
 fn apply_limit(input: &mut DVec2, options: &StickOptions) {
     if let Some(limit) = options.limit {
+        #[allow(clippy::collapsible_if)]
         if let Some(dir) = input.try_normalize() {
             let len = input.length();
             *input = dir * len.min(limit);

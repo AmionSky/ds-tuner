@@ -16,6 +16,20 @@ struct trigger_lut {
     __type(key, u32);
 } left_trigger SEC(".maps"), right_trigger SEC(".maps");
 
+struct smoothing_cfg {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 2);
+    __type(value, u8);
+    __type(key, u32);
+} smoothing SEC(".maps");
+
+struct stick_smoothing {
+    u8 current;
+    u8 count;
+    u8 x[256];
+    u8 y[256];
+} ls_smoothing, rs_smoothing;
+
 void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
 {
     u32 index = *x + *y * 256;
@@ -37,6 +51,32 @@ void apply_trigger(u8 *v, struct trigger_lut *lut)
         *v = *value;
     } else {
         bpf_printk("%s: Trigger LUT value is NULL!", __func__);
+    }
+}
+
+void apply_smoothing(u8 *x, u8 *y, u32 index, struct stick_smoothing *s) {
+    u8 *amount = bpf_map_lookup_elem(&smoothing, &index);
+    if (amount && *amount > 1) {
+        // Save current value
+        if (s->current > *amount) s->current = 0;
+        s->x[s->current] = *x;
+        s->y[s->current] = *y;
+        s->current++;
+        if (s->current > s->count) s->count = s->current;
+
+        // Get avg value
+        u16 value_x = 0;
+        u16 value_y = 0;
+        for (u8 i = 0; i < s->count; i++) {
+            value_x += s->x[i];
+            value_y += s->y[i];
+        }
+        value_x /= s->count;
+        value_y /= s->count;
+
+        // Update value
+        *x = value_x;
+        *y = value_y;
     }
 }
 
@@ -75,6 +115,10 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
     apply_stick(&input->rx, &input->ry, &right_stick);
     apply_trigger(&input->z, &left_trigger);
     apply_trigger(&input->rz, &right_trigger);
+
+    // Apply Smoothing
+    apply_smoothing(&input->x, &input->y, 0, &ls_smoothing);
+    apply_smoothing(&input->rx, &input->ry, 1, &rs_smoothing);
 
     // Recalculate trigger press treshold
     input->buttons[1] &= (DS_BUTTONS1_L2 | DS_BUTTONS1_R2) ^ 0xFF;
