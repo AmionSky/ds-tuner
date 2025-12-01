@@ -12,7 +12,7 @@
 # Limits the max radius of the input. (default is unset (no limit))
 # limit = 1.0
 
-# Smoothing over time. Higher values increases latency. Depends on polling rate. (default is 0 (no smoothing))
+# Smooths out the changes of the input. Depends on polling rate. (default is 0 (no smoothing))
 # smoothing = 0
 
 
@@ -27,7 +27,7 @@
 # Limits the max radius of the input. (default is unset (no limit))
 # limit = 1.0
 
-# Smoothing over time. Higher values increases latency. Depends on polling rate. (default is 0 (no smoothing))
+# Smooths out the changes of the input. Depends on polling rate. (default is 0 (no smoothing))
 # smoothing = 0
 
 

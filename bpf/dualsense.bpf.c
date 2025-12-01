@@ -24,10 +24,12 @@ struct smoothing_cfg {
 } smoothing SEC(".maps");
 
 struct stick_smoothing {
-    u8 current;
-    u8 count;
-    u8 x[256];
-    u8 y[256];
+    u32 index;
+    u32 count;
+    struct smoothing_axis {
+        u8 arr[256];
+        u32 sum;
+    } x, y;
 } ls_smoothing, rs_smoothing;
 
 void apply_stick(u8 *x, u8 *y, struct stick_lut *lut)
@@ -54,29 +56,26 @@ void apply_trigger(u8 *v, struct trigger_lut *lut)
     }
 }
 
-void apply_smoothing(u8 *x, u8 *y, u32 index, struct stick_smoothing *s) {
-    u8 *amount = bpf_map_lookup_elem(&smoothing, &index);
+void update_sum(struct smoothing_axis *v, u8 index, u8 input) {
+    v->sum -= v->arr[index];
+    v->arr[index] = input;
+    v->sum += input;
+}
+
+void apply_stick_smoothing(u8 *x, u8 *y, u32 cfg, struct stick_smoothing *s) {
+    // Get the configrued smooting value
+    u8 *amount = bpf_map_lookup_elem(&smoothing, &cfg);
+
+    // Only run if smoothing amount is 2 or more
     if (amount && *amount > 1) {
-        // Save current value
-        if (s->current > *amount) s->current = 0;
-        s->x[s->current] = *x;
-        s->y[s->current] = *y;
-        s->current++;
-        if (s->current > s->count) s->count = s->current;
+        update_sum(&s->x, s->index, *x);
+        update_sum(&s->y, s->index, *y);
 
-        // Get avg value
-        u16 value_x = 0;
-        u16 value_y = 0;
-        for (u8 i = 0; i < s->count; i++) {
-            value_x += s->x[i];
-            value_y += s->y[i];
-        }
-        value_x /= s->count;
-        value_y /= s->count;
+        if (++s->index > s->count) s->count = s->index; // Increment index and count if needed
+        if (s->index > *amount) s->index = 0; // Wrap around index based on the configured value
 
-        // Update value
-        *x = value_x;
-        *y = value_y;
+        *x = s->x.sum / s->count;
+        *y = s->y.sum / s->count;
     }
 }
 
@@ -117,8 +116,8 @@ int BPF_PROG(mod_device_event, struct hid_bpf_ctx *hid_ctx)
     apply_trigger(&input->rz, &right_trigger);
 
     // Apply Smoothing
-    apply_smoothing(&input->x, &input->y, 0, &ls_smoothing);
-    apply_smoothing(&input->rx, &input->ry, 1, &rs_smoothing);
+    apply_stick_smoothing(&input->x, &input->y, 0, &ls_smoothing);
+    apply_stick_smoothing(&input->rx, &input->ry, 1, &rs_smoothing);
 
     // Recalculate trigger press treshold
     input->buttons[1] &= (DS_BUTTONS1_L2 | DS_BUTTONS1_R2) ^ 0xFF;

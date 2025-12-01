@@ -72,12 +72,12 @@ fn update_trigger_lut<M: MapCore>(map: M, lut: &[u8]) -> libbpf_rs::Result<()> {
 
 fn update_smoothing<M: MapCore>(map: M, config: &Config) -> libbpf_rs::Result<()> {
     map.update(
-        &0u32.to_ne_bytes(),
+        &0u32.to_ne_bytes(), // Left Stick
         &config.stick.left.smoothing.to_ne_bytes(),
         MapFlags::ANY,
     )?;
     map.update(
-        &1u32.to_ne_bytes(),
+        &1u32.to_ne_bytes(), // Right Stick
         &config.stick.right.smoothing.to_ne_bytes(),
         MapFlags::ANY,
     )?;
