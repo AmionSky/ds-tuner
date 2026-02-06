@@ -1,6 +1,6 @@
 [package]
 name = "ds-tuner"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 license = "GPL-3.0-only"
 repository = "https://github.com/AmionSky/ds-tuner"
@@ -32,14 +32,14 @@ simplelog = "0.12.2"
 inotify = { version = "0.11.0", default-features = false }
 udev = { version = "0.9.3", features = ["mio"] }
 # Input
-glam = "0.30.0"
+glam = "0.31.0"
 
 [dependencies.libbpf-rs]
-version = "0.25.0"
+version = "0.26.0"
 default-features = false
 
 [build-dependencies]
-libbpf-cargo = "0.25.0"
+libbpf-cargo = "0.26.0"
 
 [profile.release]
 codegen-units = 1
