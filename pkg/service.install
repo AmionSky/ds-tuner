@@ -7,3 +7,8 @@ pre_remove() {
     systemctl stop ds-tuner.service
     systemctl disable ds-tuner.service
 }
+
+post_upgrade() {
+    systemctl daemon-reload
+    systemctl try-restart ds-tuner.service
+}
