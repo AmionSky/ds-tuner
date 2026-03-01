@@ -1,6 +1,6 @@
 [package]
 name = "ds-tuner"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 license = "GPL-3.0-only"
 repository = "https://github.com/AmionSky/ds-tuner"
@@ -23,7 +23,7 @@ libc = "0.2"
 clap = { version = "4.5.39", features = ["derive"] }
 # Config
 serde = { version = "1.0.0", features = ["derive"] }
-toml = { version = "0.9.3", default-features = false, features = ["std", "serde", "parse"] }
+toml = { version = "1.0.0", default-features = false, features = ["std", "serde", "parse"] }
 # Logging
 log = { version = "0.4.27", features = ["release_max_level_debug"] }
 systemd-journal-logger = { version = "2.2.2", optional = true }
@@ -32,7 +32,7 @@ simplelog = "0.12.2"
 inotify = { version = "0.11.0", default-features = false }
 udev = { version = "0.9.3", features = ["mio"] }
 # Input
-glam = "0.31.0"
+glam = "0.32.0"
 
 [dependencies.libbpf-rs]
 version = "0.26.0"
@@ -43,6 +43,6 @@ libbpf-cargo = "0.26.0"
 
 [profile.release]
 codegen-units = 1
-opt-level = "s"
+opt-level = 2
 strip = true
 lto = true
